@@ -337,30 +337,8 @@ def readsfm(filename):
 	print("There are {} fields in total in  {} entries in the file.".format(sfm_len,len(sfm)))
 	print("SFM list has {} fields.".format(sfm_len))
 	print("There are {} lines with data in the file.\n".format(fields_in_file))
-	
-	
-	
+		
 	return sfm#, marker_count, marker_count_with_data		
-
-def csv_has_headers:
-
-	empty_header_cell = []
-	
-	with open(filename, 'r', encoding="utf8") as infile:
-		datareader = csv.reader(infile, dialect='default')
-		firstline = next(datareader)
-		for i, marker in enumerate(firstline):
-			if marker == empty:
-				empty_header_cell.append(i)
-				
-		print(firstline)
-		print("{} cells were found on the first line.".format(len(firstline)))
-		print("{} markers were found before the first empty cell.".format(empty_header_cell[0]))
-		print("{} empty header cells were found.".format(len(empty_header_cell)))
-		if len(firstline) == len(empty_header_cell) + empty_header_cell[0] :
-			print("No cells had data after the first empty header cell. {}".format(len(empty_header_cell)))
-				
-	return True
 	
 
 def readcsv(filename):
@@ -370,59 +348,85 @@ def readcsv(filename):
 
 	No_slash_info = namedtuple('No_slash_info',['row','column','contents','previous_cell'])
 	No_slash_cells = []
-	csv_has_headers = True
 	
-	if csv_has_headers:
-		
-	with open(filename, 'r', encoding="utf8") as infile:
-		datareader = csv.reader(infile, dialect='default')
-		firstline = next(datareader)		
+	# This is True only for testing the function get_markers_from_csv_headers 
+	if True:
+		markers,sfm = readcsv_with_headers(filename)
+	else:	
+		with open(filename, 'r', encoding="utf8") as infile:
+			datareader = csv.reader(infile, dialect='default')
+			firstline = next(datareader)		
+					
+			for i,row in enumerate(datareader):
+				entry = []
+				previous_cell = empty
+				#firstdata = row[0].split(space,1)[1]
+				#print(firstdata)	
+				for j,cell in enumerate(row):
+					if cell == empty :
+						previous_cell = empty
+						continue
+					elif not cell[0] == slash :
+						No_slash_cells.append(No_slash_info(i+2,num_to_column(j+1), cell,previous_cell))
+						#raise ValueError("Cell in Row {}, Column {} doesn't contain a slash. Contents are :{}".format(i+2,num_to_column(j+1), cell))
+						previous_cell = cell
+						continue
+					if space in cell:
+						#Separate the marker from the data.
+						marker , data = cell.split(space,1)
+						if len(data) == 0 :
+							print("This marker {} has no data {}".format(marker,data))
+							entry.append([marker,data])
+						previous_cell = cell
+				sfm.append(entry)
 				
-		for i,row in enumerate(datareader):
-			entry = []
-			previous_cell = empty
-			#firstdata = row[0].split(space,1)[1]
-			#print(firstdata)	
-			for j,cell in enumerate(row):
-				if cell == empty :
-					previous_cell = empty
-					continue
-				elif not cell[0] == slash :
-					No_slash_cells.append(No_slash_info(i+2,num_to_column(j+1), cell,previous_cell))
-					#raise ValueError("Cell in Row {}, Column {} doesn't contain a slash. Contents are :{}".format(i+2,num_to_column(j+1), cell))
-					previous_cell = cell
-					continue
-				if space in cell:
-					#Separate the marker from the data.
-					marker , data = cell.split(space,1)
-					if len(data) == 0 :
-						print("This marker {} has no data {}".format(marker,data))
-						entry.append([marker,data])
-					previous_cell = cell
-			sfm.append(entry)
-			
 	return sfm , No_slash_cells
 
 def readcsv_with_headers(filename):
 
-	#print("Reading csv file : {}".format(filename))
+	print("Reading csv file {}\nExpecting markers in the first line.".format(filename))
+	markers = []
 	sfm = []
-	vitalmarkers = ["\lx","\ps","\sn"]
+	vital_markers = ["\lx","\ps","\sn"]
 	
 	with open(filename, 'r', encoding="utf8") as infile:
 		datareader = csv.reader(infile, dialect='default')
-		header = next(datareader)
+		firstline = next(datareader)
+		for i, marker in enumerate(firstline):
+			if marker == empty:
+				raise ValueError("\nColumn heading for column {} is empty.".format(i))
+			elif len(marker) > 0 and marker[0] != slash:
+				raise ValueError("\nThe column heading for column {} doesn't begin with a slash.\nHeading is {}\n".format(i,marker))
+			elif len(marker) > 1 and marker[0] == slash:
+				markers.append(marker)
+			else:
+				raise ValueError("Seems like a logic error in the code here!")
+
 		
+		print(firstline)
+		print(markers)
+		# print("{} cells were found on the first line.".format(len(firstline)))
+		# print("{} markers were found before the first empty cell.".format(empty_header_cell[0]))
+		# print("{} empty header cells were found.".format(len(empty_header_cell)))
+		# if len(firstline) == len(empty_header_cell) + empty_header_cell[0] :
+			# print("No cells had data after the first empty header cell. {}".format(len(empty_header_cell)))
+
 		for i,row in enumerate(datareader):
 			entry = []
 			for j,data in enumerate(row):
-				marker = header[j]
-				if data == empty and marker in vital_markers:
-					entry.append([marker,empty])
-				else :
+				marker = markers[j]
+				if len(data) > 0:
 					entry.append([marker,data])		
-			sfm.append(entry)		
-	return sfm
+				elif data == empty :
+					if marker in vital_markers:
+						entry.append([marker,empty])
+					else:
+						continue
+				else:
+					raise ValueError("Don't know what happened here!\n Marker is {} and data is {} line no. is {}".format(marker,data,j))
+					
+			sfm.append(entry)
+	return markers, sfm
 
 
 def reorder_entries(sfm,entry_order_dict):
@@ -947,10 +951,7 @@ def show_main_menu(sfm):
 			out_file = filesavebox(title="Save processed file as:")
 			writesfm_without_empty_markers(sfm,overwrite,out_file)
 			input("Processed SFM file written to {}\n\nPress enter to continue.".format(out_file))
-			out_file = filesavebox(title="Save processed file as:")
-			writesfm_without_empty_markers(sfm,overwrite,out_file)
-			input("Processed SFM file written to {}\n\nPress enter to continue.".format(out_file))
-
+			
 		if choice == '8':
 			field_chosen = None
 			#field_chosen = choicebox('Choose field whose data you want to change.', 'Field Markers', [' '+x+' ' for x in markers])

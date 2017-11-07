@@ -72,7 +72,8 @@ def main_menu():
 	"Save the changes to an SFM file omitting most empty markers.",\
 	"List the unique data in a given marker.",\
 	"Split the file into simple-to-import and otherwise.",\
-	"Split marker according to script.\n"]
+	"Split marker according to script.",\
+	"Print the sfm file to screen.\n"]
 
 	quit = [0, "Quit\n"]
 	return (rubric,lines,quit)

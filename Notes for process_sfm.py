@@ -14,7 +14,6 @@ Treat the first word after a newline as a marker.
 If there are markers without a backslash, tell the user the line number so they can fix it.
 DONE
 
-
 Then we can know which markers are duplicates of others.
 If there are duplicate markers, ask the user which marker to replace with which other marker.
 Do a find replace on duplicate markers.

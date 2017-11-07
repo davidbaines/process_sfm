@@ -342,6 +342,26 @@ def readsfm(filename):
 	
 	return sfm#, marker_count, marker_count_with_data		
 
+def csv_has_headers:
+
+	empty_header_cell = []
+	
+	with open(filename, 'r', encoding="utf8") as infile:
+		datareader = csv.reader(infile, dialect='default')
+		firstline = next(datareader)
+		for i, marker in enumerate(firstline):
+			if marker == empty:
+				empty_header_cell.append(i)
+				
+		print(firstline)
+		print("{} cells were found on the first line.".format(len(firstline)))
+		print("{} markers were found before the first empty cell.".format(empty_header_cell[0]))
+		print("{} empty header cells were found.".format(len(empty_header_cell)))
+		if len(firstline) == len(empty_header_cell) + empty_header_cell[0] :
+			print("No cells had data after the first empty header cell. {}".format(len(empty_header_cell)))
+				
+	return True
+	
 
 def readcsv(filename):
 
@@ -350,11 +370,14 @@ def readcsv(filename):
 
 	No_slash_info = namedtuple('No_slash_info',['row','column','contents','previous_cell'])
 	No_slash_cells = []
+	csv_has_headers = True
 	
+	if csv_has_headers:
+		
 	with open(filename, 'r', encoding="utf8") as infile:
 		datareader = csv.reader(infile, dialect='default')
-		firstline = next(datareader)
-		
+		firstline = next(datareader)		
+				
 		for i,row in enumerate(datareader):
 			entry = []
 			previous_cell = empty
@@ -379,6 +402,27 @@ def readcsv(filename):
 			sfm.append(entry)
 			
 	return sfm , No_slash_cells
+
+def readcsv_with_headers(filename):
+
+	#print("Reading csv file : {}".format(filename))
+	sfm = []
+	vitalmarkers = ["\lx","\ps","\sn"]
+	
+	with open(filename, 'r', encoding="utf8") as infile:
+		datareader = csv.reader(infile, dialect='default')
+		header = next(datareader)
+		
+		for i,row in enumerate(datareader):
+			entry = []
+			for j,data in enumerate(row):
+				marker = header[j]
+				if data == empty and marker in vital_markers:
+					entry.append([marker,empty])
+				else :
+					entry.append([marker,data])		
+			sfm.append(entry)		
+	return sfm
 
 
 def reorder_entries(sfm,entry_order_dict):
@@ -667,10 +711,8 @@ def check_markers(sfm,known_markers):
 		print("There were no unexpected markers seen in the file:")
 	else :
 		print("These unexpected markers were seen in the file:\n{}".format(unknown_markers))
-	
-	if not seen_markers:
-		print("There were no unexpected markers seen in the file:")
-	else :
+
+	if seen_markers:
 		print("These expected markers were seen in the file:\n{}".format(seen_markers))
 		
 	return seen_markers, unknown_markers
@@ -937,8 +979,12 @@ def show_main_menu(sfm):
 			print("Marker {} occurs {} times in the data.".format(field_chosen,marker_count[field_chosen]))
 			sfm, count = do_split_marker_by_script(sfm,field_chosen,"LATIN","ARABIC","\\ar_la","\\ar_ar")
 			print("{} entries modified.".format(count))
+	
+		if choice =='11':
+			print_sfm(sfm)
 		
-	# if args.output and fileout_extention in csvfileexts :	
+		
+		# if args.output and fileout_extention in csvfileexts :	
 		# writecsv(sfm, overwrite, args.output)
 
 	# if args.output and fileout_extention in sfmfileexts :

@@ -405,15 +405,19 @@ def readcsv_with_headers(filename):
 		
 		print(firstline)
 		print(markers)
+		
 		# print("{} cells were found on the first line.".format(len(firstline)))
 		# print("{} markers were found before the first empty cell.".format(empty_header_cell[0]))
 		# print("{} empty header cells were found.".format(len(empty_header_cell)))
 		# if len(firstline) == len(empty_header_cell) + empty_header_cell[0] :
 			# print("No cells had data after the first empty header cell. {}".format(len(empty_header_cell)))
-
+		
 		for i,row in enumerate(datareader):
 			entry = []
 			for j,data in enumerate(row):
+				if j+1 > len(markers):
+					print("Found the {}th data item: {} and there are only {} markers".format(j+1,data,len(markers)))
+					exit()
 				marker = markers[j]
 				if len(data) > 0:
 					entry.append([marker,data])		
@@ -590,7 +594,7 @@ def do_replace_marker(sfm,find,replace):
 				new_sfm[i][j][0] = replace
 	
 	return new_sfm, count
-
+	
 def do_split_marker_by_script(sfm,find_marker,script1,script2,new_marker1,new_marker2):
 #Find a given marker and split it by script.
 
@@ -887,21 +891,26 @@ def show_main_menu(sfm):
 			input("\nMade {} replacements\n\nPress enter to continue.".format(count))
 			
 		if choice == '3':
-			field_chosen = None
-			#field_chosen = choicebox('Choose field whose data you want to change.', 'Field Markers', [' '+x+' ' for x in markers])
-			while field_chosen not in markers:
-				field_chosen = input("Type in the field whose data you want to change. Or hit enter to go back.")
-				if not field_chosen:
+			marker = None
+			#marker = choicebox('Choose field whose data you want to change.', 'Field Markers', [' '+x+' ' for x in markers])
+			while marker not in markers:
+				marker = input("Type in the field whose data you want to change. Or hit enter to go back.")
+				if not marker:
 					break
-			choice = sanitised_input("How would you like specify the changes to make? By file (csv) or typed in?", str, range_=('file','f','type','t'))
-			if choice.lower() in ['file','f']:
+			choice = sanitised_input("How would you like specify the changes to make? By file (csv) or typed in?", str, range_=('file','f','typed','t'))
+			if choice.lower()[0] == 'f':
 				changefile = fileopenbox(title="Choose csv file containing changes.",msg='Choose csv file.',filetypes=['*.csv'])
 				if changefile:
-					sfm, total_replacements = process_replacements_from_file(sfm,field_chosen,changefile)
+					sfm, total_replacements = process_replacements_from_file(sfm,marker,changefile)
 					print("Made {} replacements".format(total_replacements))
-				else:
-					continue
-					
+			elif choice.lower()[0] == 't':
+			
+				find = sanitised_input("What data would you like to find in field {}? >".format(marker), str)
+				replace = sanitised_input("What would you like to replace {} with? >".format(find), str)
+				sfm, replacement_count = replace_data(sfm,marker,find,replace)
+				print("Made {} replacements".format(replacement_count))
+				
+				
 		if choice == '4':
 			out_file = filesavebox(title="Save processed file as:")
 			writesfm(sfm,overwrite,out_file)

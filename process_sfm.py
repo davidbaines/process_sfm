@@ -1,5 +1,5 @@
 #! /usr/bin/python3
-
+# python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in c:\Users\David\Documents\Importing\
 # SFM utilities
 # This program should read in a text file in either SFM or csv format.
 # Then process the file and output a list of markers into markers.txt
@@ -594,6 +594,23 @@ def do_replace_marker(sfm,find,replace):
 				new_sfm[i][j][0] = replace
 	
 	return new_sfm, count
+
+def duplicate_marker(sfm,find_marker,dup_marker):
+#Duplicate one marker with another.
+	new_sfm = []
+	count = 0
+	#print("\nIn duplicate_marker code:\n")
+	
+	for i,entry in enumerate(new_sfm):
+		for j , field in enumerate(entry):
+			marker, data = field
+			new_sfm.append[[marker,data]]
+			if marker == find_marker :
+				count = count + 1
+				new_sfm.append[[dup_marker,data]]
+				
+	return new_sfm, count
+	
 	
 def do_split_marker_by_script(sfm,find_marker,script1,script2,new_marker1,new_marker2):
 #Find a given marker and split it by script.
@@ -892,6 +909,27 @@ def show_main_menu(sfm):
 			
 		if choice == '3':
 			marker = None
+			marker = choicebox('Choose the field you want to duplicate.', 'Field Markers',[' '+x+' ' for x in markers]).strip()
+
+			print("Marker chosen is {}".format(marker))
+			print(markers)
+			while marker not in markers:
+				marker = input("Type in the field whose data you want to duplicate. Or hit enter to go back.")
+				if not marker:
+					break
+			
+			dup_marker = sanitised_input("What marker would you like to use for the duplicate field?", str)
+			if dup_marker[0] != slash :
+				dup_marker = slash + dup_marker
+			
+			choice = sanitised_input("Duplicating field {} to field {}. Proceed? y/n ".format(marker,dup_marker), str)
+			if choice.lower()[0] == 'y':
+				sfm, replacement_count = duplicate_marker(sfm,marker,dup_marker)
+				print("Made {} replacements".format(replacement_count))
+			
+				
+		if choice == '4':
+			marker = None
 			#marker = choicebox('Choose field whose data you want to change.', 'Field Markers', [' '+x+' ' for x in markers])
 			while marker not in markers:
 				marker = input("Type in the field whose data you want to change. Or hit enter to go back.")
@@ -911,12 +949,12 @@ def show_main_menu(sfm):
 				print("Made {} replacements".format(replacement_count))
 				
 				
-		if choice == '4':
+		if choice == '5':
 			out_file = filesavebox(title="Save processed file as:")
 			writesfm(sfm,overwrite,out_file)
 			input("Processed SFM file written to {}\n\nPress enter to continue.".format(out_file))
 		
-		if choice == '5':
+		if choice == '6':
 			info_file = filesavebox(title="Save processed file as:")
 			print("Writing data to file {}.".format(info_file))
 			counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
@@ -938,7 +976,7 @@ def show_main_menu(sfm):
 			output_markers(marker_count, marker_count_with_data,info_file,overwrite)
 			#output_counter(marker_count_with_data,"The most used markers are:")
 			
-		if choice == '6':
+		if choice == '7':
 			limit = 6
 			print("\nLooking for common data in each field.")
 			print("Data repeated more than {} times is shown with a count of the occurances, under the field marker.".format(limit))
@@ -956,12 +994,12 @@ def show_main_menu(sfm):
 			#	if marker not in list_markers:
 			#		output_counter(counter_dict[marker],"  Marker: {}".format(marker),limit,filename=info_file,mode=append)
 		
-		if choice == '7':
+		if choice == '8':
 			out_file = filesavebox(title="Save processed file as:")
 			writesfm_without_empty_markers(sfm,overwrite,out_file)
 			input("Processed SFM file written to {}\n\nPress enter to continue.".format(out_file))
 			
-		if choice == '8':
+		if choice == '9':
 			field_chosen = None
 			#field_chosen = choicebox('Choose field whose data you want to change.', 'Field Markers', [' '+x+' ' for x in markers])
 			while field_chosen not in markers:
@@ -972,14 +1010,14 @@ def show_main_menu(sfm):
 			for item,count in counter_dict[field_chosen].items():
 				print(item,"\t\t",count)
 				
-		if choice == '9':
+		if choice == '10':
 			easy_file = filesavebox(title="Save the Simple-to-import file as:")
 			hard_file = filesavebox(title="Save the Difficult-to-import file as:")
 			simple_mdf,not_simple_mdf = split_file(sfm,easy_file,hard_file)
 			print("There are {} simple entries.".format(len(simple_mdf)))
 			print("There are {} not so simple entries.".format(len(not_simple_mdf)))
 	
-		if choice =='10':
+		if choice =='11':
 			field_chosen = None
 			#field_chosen = choicebox('Choose field whose data you want to split.', 'Field Markers', [' '+x+' ' for x in markers])
 			while field_chosen not in markers:
@@ -990,7 +1028,7 @@ def show_main_menu(sfm):
 			sfm, count = do_split_marker_by_script(sfm,field_chosen,"LATIN","ARABIC","\\ar_la","\\ar_ar")
 			print("{} entries modified.".format(count))
 	
-		if choice =='11':
+		if choice =='12':
 			print_sfm(sfm)
 		
 		

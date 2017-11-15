@@ -59,12 +59,14 @@ def show_menu(rubric,lines,quit):
 
 def main_menu():
 	rubric = [
+	
 	"To process sfm or csv data.\n",\
 	"Please choose what you would like to do."\
 	]
 	lines = [
 	"Show information about the file.",\
 	"Change a marker.",\
+	"Duplicate a marker with a new name.",\
 	"Change data in a given field.",\
 	"Save the changes to an SFM file.",\
 	"Write summary information about the file.",\

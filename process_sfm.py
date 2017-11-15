@@ -492,6 +492,7 @@ def writesfm_without_empty_markers(sfm,mode,filename):
 				nextline = (marker + space + data).strip()
 			else:
 				continue
+
 			if marker == new_entry_marker:
 				lines.append(newline)
 			lines.append(nextline + newline)
@@ -601,14 +602,17 @@ def duplicate_marker(sfm,find_marker,dup_marker):
 	count = 0
 	#print("\nIn duplicate_marker code:\n")
 	
-	for i,entry in enumerate(new_sfm):
-		for j , field in enumerate(entry):
+	for entry in sfm:
+		new_entry = []
+		for field in entry:
 			marker, data = field
-			new_sfm.append[[marker,data]]
+			new_entry.append([marker,data])
 			if marker == find_marker :
 				count = count + 1
-				new_sfm.append[[dup_marker,data]]
+				new_entry.append([dup_marker,data])
 				
+		new_sfm.append(new_entry)		
+	
 	return new_sfm, count
 	
 	
@@ -909,6 +913,7 @@ def show_main_menu(sfm):
 			
 		if choice == '3':
 			marker = None
+			print("First {} entries of new SFM are {}".format(3,sfm[0:3]))
 			marker = choicebox('Choose the field you want to duplicate.', 'Field Markers',[' '+x+' ' for x in markers]).strip()
 
 			print("Marker chosen is {}".format(marker))
@@ -926,7 +931,7 @@ def show_main_menu(sfm):
 			if choice.lower()[0] == 'y':
 				sfm, replacement_count = duplicate_marker(sfm,marker,dup_marker)
 				print("Made {} replacements".format(replacement_count))
-			
+				print("First {} entries of new SFM are {}".format(3,sfm[0:3]))
 				
 		if choice == '4':
 			marker = None

@@ -1,5 +1,5 @@
 #! /usr/bin/python3
-# python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in c:\Users\David\Documents\Importing\
+# python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in c:\Users\David\Documents\Importing\ -in "C:\Users\David\Documents\Importing\Romblomanon\Davids Work\Rodi.sfm" 
 # SFM utilities
 # This program should read in a text file in either SFM or csv format.
 # Then process the file and output a list of markers into markers.txt
@@ -27,7 +27,7 @@ import difflib
 from process_sfm_menu import show_menu, main_menu
 from easygui import fileopenbox, filesavebox, buttonbox, choicebox, diropenbox
 from alphabet_detector import AlphabetDetector
-
+from operator import itemgetter
 #print("main_menu is {} and it's type is {}".format(main_menu,type(main_menu)))
 #def fileopenbox(msg=None, title=None, default='*', filetypes=None, multiple=False)
 
@@ -59,7 +59,7 @@ readbytes = 'rb'
 csv_ext = '.csv'
 sfm_ext = '.sfm'
 csvfileexts = ['.csv']
-sfmfileexts = ['.db', '.lex', '.mdf']
+sfmfileexts = ['.sfm','.db', '.lex', '.mdf']
 filemasks = ["*.csv","*.db","*.lex","*.mdf"]
 
 #These extra markers appear in specific SFM files.
@@ -194,12 +194,30 @@ def printmarkers(marker_count,marker_count_with_data):
 		print(line[0])
 	print()
 
-
-def print_sfm(sfm):
-	for entry in sfm:
+def print_sfm(sfm, maximum):
+	
+	for entry in sfm[0:maximum]:
 		for field in entry:
 			marker , data = field
 			print(marker,data)
+		print()
+	
+def sort_sfm(sfm, sort_by = None):
+
+	if sort_by == 'lexeme' :
+		return sorted(sfm, key=lambda x: x[0][1])
+	elif sort_by == 'length' :
+		return sorted(sfm, key=lambda x: len(x), reverse=True)
+		
+	# lex = itemgetter([1])
+	# for entry in sfm:
+		# print("It is {}".format(lex(entry)))
+		
+	# if not sort_by or sort_by == 'lexeme':
+	# return sorted(sfm,key=itemgetter(1))
+	# sorted(data,key=itemgetter(1))
+	# sfm.sort(key=lambda x: x[3])
+#	return sorted_sfm
 
 
 def output_markers(marker_count,m_with_data,filename = '',write_mode=append):
@@ -319,8 +337,10 @@ def readsfm(filename):
 	sfm.append(entry)
 	
 	#Remove the \sh line if present.
-	print("\nFirst entry is {} {}".format(sfm[0][0],sfm[0],[1]))
-	print("\nSecond entry is {} {}".format(sfm[1][0],sfm[1],[1]))
+	print("\nFirst entry is \n")
+	print(sfm[0])
+	print("\nSecond entry is \n")
+	print(sfm[1])
 	
 	firstmarker , data = sfm[0][0]
 	if	firstmarker == "\\_sh" :
@@ -787,6 +807,7 @@ def get_sfm_info(sfm):
 def process_input_file(filein):	
 
 	filename, file_extension = os.path.splitext(filein)
+	
 	if file_extension.lower() in csvfileexts :
 		filetype = csv_ext
 		
@@ -795,7 +816,7 @@ def process_input_file(filein):
 
 	else :
 		choice = empty
-		while choice not in ['sfm', 's', 'csv', 'c', 'q']:
+		while choice not in ['s', 'c', 'q']:
 			choice = sanitised_input("The file extension {} isn't recognised. Should it be treated as an SFM or CSV file? Type s or c, or q to quit.>".format(file_extension), str.lower, range_=('sfm', 's', 'csv', 'c', 'q'))
 
 		if choice in ['s','sfm'] :
@@ -850,7 +871,12 @@ def split_file(sfm,easy_file,hard_file,order_dict=None):
 		writesfm(simple_mdf,overwrite,easy_file,order=order_dict)
 	
 	return simple_mdf, not_simple_mdf
-
+	
+def get_field():
+	while field_chosen not in markers:
+		field_chosen = input("Type in the field whose data you want to change. Or hit enter to go back.")
+	return field_chosen
+	
 def split_file_info(simple_mdf,not_simple_mdf):	
 	''' Return info about the split files. '''
 	single_field_counter = Counter()
@@ -1033,10 +1059,17 @@ def show_main_menu(sfm):
 			sfm, count = do_split_marker_by_script(sfm,field_chosen,"LATIN","ARABIC","\\ar_la","\\ar_ar")
 			print("{} entries modified.".format(count))
 	
+
 		if choice =='12':
-			print_sfm(sfm)
+
+			sfm = sort_sfm(sfm, 'lexeme')
+			sfm = sort_sfm(sfm, 'length')
 		
-		
+		if choice =='13':
+			#sort_order = sanitised_input("Sort alphabetically, or by entry-length? a / l> ", str, range=('a','l','alpha', 'alphabetically' ,'length'))
+			number = sanitised_input("There are {} entries, how many would you to show? ".format(len(sfm)), int)
+			print_sfm(sfm,number)
+
 		# if args.output and fileout_extention in csvfileexts :	
 		# writecsv(sfm, overwrite, args.output)
 

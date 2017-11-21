@@ -75,6 +75,7 @@ def main_menu():
 	"List the unique data in a given marker.",\
 	"Split the file into simple-to-import and otherwise.",\
 	"Split marker according to script.",\
+	"Sort the sfm file.",\
 	"Print the sfm file to screen.\n"]
 
 	quit = [0, "Quit\n"]

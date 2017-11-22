@@ -202,23 +202,15 @@ def print_sfm(sfm, maximum):
 			print(marker,data)
 		print()
 	
-def sort_sfm(sfm, sort_by = None):
+def sort_sfm(sfm, sort_by = 'lexeme', rev = False):
+#Sort the sfm entries. Either sort alphabetically on the lexeme form or by the number of field in the entry.
+#To sort longest first requires 'reverse=True' in the sorted function.
 
 	if sort_by == 'lexeme' :
-		return sorted(sfm, key=lambda x: x[0][1])
-	elif sort_by == 'length' :
-		return sorted(sfm, key=lambda x: len(x), reverse=True)
+		return sorted(sfm, key=lambda x: x[0][1], reverse = rev)
+	elif sort_by == 'shortest_first' :
+		return sorted(sfm, key=lambda x: len(x), reverse = rev)
 		
-	# lex = itemgetter([1])
-	# for entry in sfm:
-		# print("It is {}".format(lex(entry)))
-		
-	# if not sort_by or sort_by == 'lexeme':
-	# return sorted(sfm,key=itemgetter(1))
-	# sorted(data,key=itemgetter(1))
-	# sfm.sort(key=lambda x: x[3])
-#	return sorted_sfm
-
 
 def output_markers(marker_count,m_with_data,filename = '',write_mode=append):
 	title = "{0:<8s}{1:>10s}{2:>8s}{3:>10s}".format('Marker','With data','Empty','Total')
@@ -1050,8 +1042,8 @@ def show_main_menu(sfm):
 	
 		if choice =='11':
 			field_chosen = None
-			#field_chosen = choicebox('Choose field whose data you want to split.', 'Field Markers', [' '+x+' ' for x in markers])
 			while field_chosen not in markers:
+				#field_chosen = choicebox('Choose field whose data you want to split.', 'Field Markers', [' '+x+' ' for x in markers])
 				field_chosen = input("Type in the field whose data you want to change. Or hit enter to go back.")
 				if not field_chosen:
 					break
@@ -1061,12 +1053,23 @@ def show_main_menu(sfm):
 	
 
 		if choice =='12':
+			
+			sort_order = sanitised_input("How would you like to sort the entries:\n1) Alphabetically A to Z \n2) Alphabetically Z to A \n3) By number of fields, longest first\n4) By number of fields, shortest first\n\n0) To return to main menu", int, 0,4)
+			
+			if sort_order == 0:
+				break
+			elif sort_order == 1:
+				sfm = sort_sfm(sfm, 'lexeme', False)
+			elif sort_order == 2:
+				sfm = sort_sfm(sfm, 'lexeme', True)
+			elif sort_order == 3:
+				sfm = sort_sfm(sfm, 'shortest_first', True)
+			elif sort_order == 4:
+				sfm = sort_sfm(sfm, 'shortest_first', False)
+			
 
-			sfm = sort_sfm(sfm, 'lexeme')
-			sfm = sort_sfm(sfm, 'length')
-		
 		if choice =='13':
-			#sort_order = sanitised_input("Sort alphabetically, or by entry-length? a / l> ", str, range=('a','l','alpha', 'alphabetically' ,'length'))
+		
 			number = sanitised_input("There are {} entries, how many would you to show? ".format(len(sfm)), int)
 			print_sfm(sfm,number)
 

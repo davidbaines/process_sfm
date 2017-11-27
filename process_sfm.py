@@ -139,6 +139,39 @@ class Marker(object):
 		self.parent_marker = parent_marker
 		self.character_style = character_style
 
+class XRef(object):
+	
+	def __init__(self,  entry, marker, ref, ref_type, ref_exists):
+		self.entry = entry
+		self.marker = marker
+		self.ref = ref_type
+		self.ref_type = ref
+		self.ref_exists = ref_exists
+		
+class XRefs(object):
+	
+	def find_cross_refs(self,sfm,xref_markers):
+		self.crossrefs = []
+		self.crossrefs.append(XRef('lexeme','\cf','word','compare',False))
+		return self.crossrefs
+		
+	def __init__(self, sfm, xref_markers = ['\va','\sy','\se','\mn','\lv','\cf','\an']):
+		self.xref_markers = xref_markers
+		self.sfm = sfm
+		self.crossrefs = self.find_cross_refs(sfm,xref_markers)
+		
+		
+		
+	# for entry in sfm:
+		# for marker,data in entry:
+			# if marker == record_marker:
+				# Entry = data
+			# if marker in xrefmarkers:
+				# Marker = marker
+				# Ref = data
+				
+
+		
 def read_typ_file(filein):
 	typ = read_sfm_file(filein)
 	defined_markers = []
@@ -192,7 +225,9 @@ def read_typ_file(filein):
 
 	print("\nGroups found are as follows:\n{}".format(groups))
 	return typ, groups
-	
+
+
+				
 def get_lexemes(sfm):
 	lexemes = []
 	for entry in sfm:
@@ -843,13 +878,24 @@ def replace_data(sfm, in_marker,find,replace):
 				replacement_count += 1
 	return sfm, replacement_count
 
+def depth(lst):
+    depths = []
+    for item in lst:
+        if isinstance(item, list):
+            depths.append(depth(item))
+    if len(depths) > 0:
+        return 1 + max(depths)
+    return 1
 
 def count_markers(sfm):
 	marker_count = Counter()
 	marker_count_with_data = Counter()
 	
+	print("sfm has depth = {}".format(depth(sfm)))
+	print("sfm has type = {}".format(type(sfm)))
 	for entry in sfm:
 		#print("Entry has {} fields. {}	".format(len(entry),entry))
+		
 		for field in entry:
 			if len(field) == 2:
 				#print("Field has {} parts. {}".format(len(field),field))
@@ -858,7 +904,8 @@ def count_markers(sfm):
 				marker_count_with_data.update([marker])
 			elif len(field) == 1:
 				marker = field
-				marker_count.update([marker])
+				#print("Marker is {},length is {}".format(field,len(field)))
+				marker_count.update([field])
 	return marker_count, marker_count_with_data
 
 
@@ -932,7 +979,7 @@ def split(sfm):
 	
 
 def get_sfm_info(sfm):
-	print("In get_sfm_info: SFM type is {}, SFM is : {}".format(type(sfm),sfm))
+	print("In get_sfm_info: SFM type is {}".format(type(sfm)))
 	marker_count, marker_count_with_data = count_markers(sfm)
 	markers = [k for k in marker_count.keys()]
 	markers.sort()
@@ -988,9 +1035,10 @@ def process_input_file(filein):
 	filetype = determine_file_type(filein)
 	
 	if filetype == sfm_ext :
-		#sfm = sfm_from_list(sfmlist_from_file(filein))
-		sfm = read_sfm_file(filein)
-		return sfm, None
+		sfm = sfm_from_list(sfmlist_from_file(filein))
+		
+		#sfm = read_sfm_file(filein)
+		return sfm
 		
 	elif filetype == csv_ext :
 		sfm , No_slash_cells = readcsv(filein)
@@ -1255,6 +1303,12 @@ def show_main_menu(sfm):
 		
 		if choice == '14':
 			typ = read_typ_file(args.input)
+			
+		if choice == '15':
+			sfm = sfmlist_from_file(args.input)
+			
+			xrefs = XRefs(sfm, xref_markers = ['\va','\sy','\se','\mn','\lv','\cf','\an'])
+			print("xrefs is {}".format(xrefs))
 		
 	return sfm, out_file, summary_file
 
@@ -1268,6 +1322,7 @@ if __name__ == "__main__":
 		args.input = fileopenbox(title="Choose a file to process.", filetypes=filemasks)
 
 	sfm = process_input_file(args.input)
+	print("In __main__. sfm has type = {}".format(type(sfm)))
 	counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
 	seen_markers, unknown_markers = check_markers(sfm,mdf_order)
 

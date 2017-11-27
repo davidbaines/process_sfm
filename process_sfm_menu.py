@@ -77,7 +77,8 @@ def main_menu():
 	"Split marker according to script.",\
 	"Sort the sfm file.",\
 	"Print the sfm file to screen.",\
-	"Read in a typ file.\n"]
+	"Read in a typ file.",\
+	"Examine the Cross References in an SFM file.\n"]
 
 	quit = [0, "Quit\n"]
 	return (rubric,lines,quit)

@@ -76,7 +76,8 @@ def main_menu():
 	"Split the file into simple-to-import and otherwise.",\
 	"Split marker according to script.",\
 	"Sort the sfm file.",\
-	"Print the sfm file to screen.\n"]
+	"Print the sfm file to screen.",\
+	"Read in a typ file.\n"]
 
 	quit = [0, "Quit\n"]
 	return (rubric,lines,quit)

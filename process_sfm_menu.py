@@ -31,7 +31,7 @@ def show_menu(rubric,lines,quit):
  
 #	os.system('cls' if os.name == 'nt' else 'clear')
 	valid_choices = [str(x) for x in range(1,len(lines)+1)]
-	print("Valid choices are {}.\n".format(valid_choices))
+	#print("Valid choices are {}.\n".format(valid_choices))
 	
 	for line in rubric :
 		print(line)

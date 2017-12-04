@@ -124,7 +124,7 @@ def easygui_demo():
 
 		# Save the reply
 		if demo_reply:
-			replies[index_chosen_demo] = ' - Last reply: {}'.format(demo_reply)
+			replies[index_chosen_demo] = 'Last: {}'.format(demo_reply)
 		else:
 			replies[index_chosen_demo] = ''
 

@@ -1,6 +1,9 @@
 #! /usr/bin/python3
 # python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in c:\Users\David\Documents\Importing\ -in "C:\Users\David\Documents\Importing\Romblomanon\Davids Work\Rodi.sfm" 
-# python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in c:\Users\David\Documents\Importing\ -in "C:\Users\David\Documents\Importing\Romblomanon\Toolbox-Unicode\PHDIC.TYP"0
+# python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in "c:\Users\David\Documents\Importing\ -in "C:\Users\David\Documents\Importing\Romblomanon\Toolbox-Unicode\PHDIC.TYP"
+
+# python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in c:\Users\David\Documents\Importing\ -in "C:\Users\David\Documents\Importing\Demo\Ouldeme.csv"
+
 
 # SFM utilities
 # This program should read in a text file in either SFM or csv format.
@@ -159,8 +162,6 @@ class XRefs(object):
 		self.xref_markers = xref_markers
 		self.sfm = sfm
 		self.crossrefs = self.find_cross_refs(sfm,xref_markers)
-		
-		
 		
 	# for entry in sfm:
 		# for marker,data in entry:
@@ -548,49 +549,64 @@ def readsfm(filename):
 def readcsv(filename):
 
 	#print("Reading csv file : {}".format(filename))
+	with open(filename, 'r', encoding="utf8") as infile:
+		datareader = csv.reader(infile, dialect='default')
+		firstline = next(datareader)
+	print("The first line of the data is: \n{}".format(firstline))
+	choice = sanitised_input("Does the first line contain markers only?",str)
+	if choice.lower()[0] == 'y':
+		no_slash_cells = []
+		sfm, markers = readcsv_with_headers(filename)
+		return sfm, markers, no_slash_cells
+	else:	
+		sfm, markers, no_slash_cells = read_csv_with_markers_in_cells(filename)
+	
+def read_csv_with_markers_in_cells(filename):
+
 	sfm = []
+	markers = []
 
 	No_slash_info = namedtuple('No_slash_info',['row','column','contents','previous_cell'])
-	No_slash_cells = []
+	no_slash_cells = []
 	
-	# This is True only for testing the function get_markers_from_csv_headers 
-	if True:
-		markers,sfm = readcsv_with_headers(filename)
-	else:	
-		with open(filename, 'r', encoding="utf8") as infile:
-			datareader = csv.reader(infile, dialect='default')
-			firstline = next(datareader)		
-					
-			for i,row in enumerate(datareader):
-				entry = []
-				previous_cell = empty
-				#firstdata = row[0].split(space,1)[1]
-				#print(firstdata)	
-				for j,cell in enumerate(row):
-					if cell == empty :
-						previous_cell = empty
-						continue
-					elif not cell[0] == slash :
-						No_slash_cells.append(No_slash_info(i+2,num_to_column(j+1), cell,previous_cell))
-						#raise ValueError("Cell in Row {}, Column {} doesn't contain a slash. Contents are :{}".format(i+2,num_to_column(j+1), cell))
-						previous_cell = cell
-						continue
-					if space in cell:
-						#Separate the marker from the data.
-						marker , data = cell.split(space,1)
-						if len(data) == 0 :
-							print("This marker {} has no data {}".format(marker,data))
-							entry.append([marker,data])
-						previous_cell = cell
-				sfm.append(entry)
+	with open(filename, 'r', encoding="utf8") as infile:
+		datareader = csv.reader(infile, dialect='default')
+		firstline = next(datareader)		
 				
-	return sfm , No_slash_cells
+		for i,row in enumerate(datareader):
+			entry = []
+			previous_cell = empty
+			#firstdata = row[0].split(space,1)[1]
+			#print(firstdata)	
+			for j,cell in enumerate(row):
+				if cell == empty :
+					previous_cell = empty
+					continue
+				elif not cell[0] == slash :
+					no_slash_cells.append(No_slash_info(i+2,num_to_column(j+1), cell,previous_cell))
+					#raise ValueError("Cell in Row {}, Column {} doesn't contain a slash. Contents are :{}".format(i+2,num_to_column(j+1), cell))
+					previous_cell = cell
+					continue
+				if space in cell:
+					#Separate the marker from the data.
+					marker , data = cell.split(space,1)
+					if marker not in markers:
+						markers.append(marker)
+						
+					if len(data) == 0 :
+						print("This marker {} has no data {}".format(marker,data))
+						entry.append([marker,data])
+					previous_cell = cell
+			sfm.append(entry)
+			
+	return sfm , markers, no_slash_cells
 
 def readcsv_with_headers(filename):
 
-	print("Reading csv file {}\nExpecting markers in the first line.".format(filename))
+	print("Reading csv file: {}\nLooking for markers in the first line.".format(filename))
 	markers = []
 	sfm = []
+	#These 'vital markers' are added to the entry even if they contain no data.
 	vital_markers = ["\lx","\ps","\sn"]
 	
 	with open(filename, 'r', encoding="utf8") as infile:
@@ -604,9 +620,8 @@ def readcsv_with_headers(filename):
 			elif len(marker) > 1 and marker[0] == slash:
 				markers.append(marker)
 			else:
-				raise ValueError("Seems like a logic error in the code here!")
+				raise ValueError("\nSeems like a logic error in the code in the function readcsv_with_headers!\n")
 
-		
 		print(firstline)
 		print(markers)
 		
@@ -634,7 +649,7 @@ def readcsv_with_headers(filename):
 					raise ValueError("Don't know what happened here!\n Marker is {} and data is {} line no. is {}".format(marker,data,j))
 					
 			sfm.append(entry)
-	return markers, sfm
+	return sfm, markers
 
 
 def reorder_entries(sfm,entry_order_dict):
@@ -979,7 +994,7 @@ def split(sfm):
 	
 
 def get_sfm_info(sfm):
-	print("In get_sfm_info: SFM type is {}".format(type(sfm)))
+	#print("In get_sfm_info: SFM type is {}".format(type(sfm)))
 	marker_count, marker_count_with_data = count_markers(sfm)
 	markers = [k for k in marker_count.keys()]
 	markers.sort()
@@ -995,8 +1010,9 @@ def get_sfm_info(sfm):
 		counter_dict[marker] = Counter()
 
 	for entry in sfm:
-		print("Entry is: {}".format(entry))
-		for marker,data in entry: 
+		#print("Entry is: {}".format(entry))
+		for field in entry:
+			marker,data = field
 			counter_dict[marker].update([data])
 
 	return counter_dict, markers, marker_count, marker_count_with_data
@@ -1019,7 +1035,6 @@ def determine_file_type(filein):
 			
 		if choice is 's':
 			return '.sfm'
-			
 		elif choice is 'c': 
 			return '.csv'
 		elif choice is 't': 
@@ -1041,25 +1056,29 @@ def process_input_file(filein):
 		return sfm
 		
 	elif filetype == csv_ext :
-		sfm , No_slash_cells = readcsv(filein)
-
-		if No_slash_cells :
-			print("The following cells don't contain a backslash marker.")
-			with io.open("Slashless.txt", 'w', encoding = utf8) as out:
+		sfm , markers, no_slash_cells = readcsv(filein)
+		print("In process_input_file sfm is of type {}".format(type(sfm)))
+		
+		if no_slash_cells :
+			print("\nSome cells do not contain slashes so it isn't clear whether they contain a marker.")
+			choice = sanitised_input("Would you like information about those cells written to a file? y/n \n", str)
+			if choice.lower()[0] == 'y':
+				out_file = filesavebox(title="File name for information about the cells without markers.")
+			with io.open(out_file, 'w', encoding = utf8) as out:
 				out.write("There are cells that don't contain a backslash marker.\n")
 				out.write("They are shown below, with the preceeding cell and the row and column.\n")
 				out.write("{0:>5} {1:<5}  {2:}***{3:}\n".format('Row','Column','Preceeding cell', 'Slashless cell'))
-				for item in No_slash_cells:
+				for item in no_slash_cells:
 					out.write("{0:>5} {1:<5}  {2:}***{3:}\n".format(item.row,item.column,item.previous_cell,item.contents))
 					print("Cell {}:{} contains: '{}'.".format(item.row,item.column, item.contents))
 					
 		#Note that filetype might not be set and the data is returned as a nested list (sfm not csv).
-		return sfm, No_slash_cells
+		return sfm
 		
-	elif filetype == typ_ext:
-		print("Extension is {}".format(filetype))
-		typ, groups =  read_typ_file(filein)
-		return typ, groups
+	# elif filetype == typ_ext:
+		# print("Extension is {}".format(filetype))
+		# typ, groups =  read_typ_file(filein)
+		# return typ, groups
 	else :
 		raise ValueError("Didn't know what to do with file {} of type {} in process_input_file.".format(filein,filetype))
 
@@ -1322,10 +1341,10 @@ if __name__ == "__main__":
 		args.input = fileopenbox(title="Choose a file to process.", filetypes=filemasks)
 
 	sfm = process_input_file(args.input)
-	print("In __main__. sfm has type = {}".format(type(sfm)))
+	#print("In __main__. sfm has type = {}".format(type(sfm)))
 	counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
 	seen_markers, unknown_markers = check_markers(sfm,mdf_order)
-
+	
 	show_main_menu(sfm)
 
 
@@ -1333,26 +1352,6 @@ if __name__ == "__main__":
 		args.output = filesavebox("Where would you like to save the output file")
 		
 	fileout , fileout_extention = os.path.splitext(args.output)
-
-
-		
-	# change = sanitised_input("Are is there data in a particular marker that needs to be changed? y/n >", str.lower, range_=('y', 'n'))
-
-	# if change == 'y':
-		
-		# find_in_marker = sanitised_input("Which marker would you like to modify? Type the number of the marker.".format(marker), int, 1, len(markers))
-		# find_in_marker = markers[find_in_marker - 1]
-
-		# find_data = sanitised_input("Which data would you like to find?> Type the data.", str)
-		
-		# replacement_data = sanitised_input("What should {} be replaced with? Type the data.>".format(find_data), str)
-		
-		# confirm = sanitised_input("Looking for '{}' in marker: '{} to be replaced with '{}'. Is this correct? y/n >".format(find_data,find_in_marker,replacement_data), str.lower, range_=('y', 'n'))
-		
-		# if confirm == 'y':
-			# new_sfm = replace_data(sfm[:],find_in_marker,find_data,replacement_data)
-			# writesfm(new_sfm,overwrite,args.output)
-			# sfm = new_sfm
 
 	if (args.output) :
 		# writesfm(sfm,overwrite,args.output)

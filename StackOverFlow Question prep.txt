@@ -1,0 +1,88 @@
+I'm using Python 3 to parse a file that contains a list of key value pairs. One pair per line.
+The keys are known as markers, and begin with a backslash. 
+This file describes the keys used in other files in something like the way a dtd describes an xml file.
+
+I've omitted most key value pairs for clarity.
+The key value pairs are grouped together, each group starts with a key: \+mkr and ends with a key \-mkr
+The value of the first key is the marker that is being described.
+
+The data describes the hierarchy of the markers that's the information I'm trying to parse.
+
+\+mkr lx
+\nam  Entry
+\mkrOverThis
+\-mkr
+
+\+mkr ps
+\nam Part of speech
+\mkrOverThis lx
+\-mkr
+
+\+mkr ex
+\nam Example
+\mkrOverThis ps
+\-mkr
+
+This is code I have:
+def read_typ_file(filein):
+	typ, filetype = process_input_file(filein, '.typ')
+	defined_markers = []
+	Marker = namedtuple('Marker',['mkr','nam','mkrOverThis'])
+
+	# Little error checking here, but file computer generated so usually consistent.
+	for entry in typ:
+		mkr = name = parent = None
+		for field in entry:
+			key , value = field
+			print('key is : {}, and value is {}'.format(key,value))
+			if key == '\\+mkr':
+				mkr = value
+			if key == '\\nam':
+				name = value
+			if key == '\\mkrOverThis':
+				parent = value
+			if key == '\\-mkr':
+				this_marker = Marker(mkr,name,parent)
+				defined_markers.append(this_marker)
+			
+	groups = dict()
+	print("HERE")
+	for marker in defined_markers:
+		print(marker)
+		print(marker[2])
+		#continue
+	for marker in defined_markers:
+		print("There are {} defined markers.\nGroups are: {}".format(len(defined_markers),groups))
+		if marker.mkrOverThis not in groups.keys():
+			groups[marker.mkrOverThis] = [marker.mkr]
+		elif marker.mkrOverThis:
+			groups[marker.mkrOverThis].append(marker.mkr)
+		else :
+			raise ValueError("There seems to be a problem with marker {} in read_typ_file.".format(marker))
+
+	print("\nGroups found are as follows:")
+	for group in groups:
+		print("Marker for parent group: {}".format(group))
+		print("{}".format(groups[group]))
+		
+		
+
+	# Little error checking here, but file computer generated so usually consistent.
+	for entry in typ:
+		for field in entry:
+			key , value = field
+			print('key is : {}, and value is {}'.format(key,value))
+			marker_dict = {'marker' : None,'name' : None,'language' : None,'parent_marker' : None,'character_style' : None}
+			if key == '\\+mkr':
+				marker_dict.update([['marker', value]])
+			if key == '\\nam':
+				marker_dict['name'] = value
+			if key == '\\lng':
+				marker_dict['language'] = value
+			if key == '\\mkrOverThis':
+				marker_dict.update([['parent_marker', value]])
+			if key == '\\CharStyle':
+				marker_dict.update([['character_style',  value]])
+			print('marker_dict is {}'.format(marker_dict))
+			if key == '\\-mkr':
+				defined_markers.append(marker_dict)

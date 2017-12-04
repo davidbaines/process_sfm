@@ -46,7 +46,7 @@ def show_menu(rubric,lines,quit):
 	print("or {} to {}".format(quit[0],quit[1]))
 	
 	choice = input(" >>  ")
-	print("\n" * 15) 
+	print("\n" * 2) 
 	
 	if choice == str(quit[0]):
 		exit()

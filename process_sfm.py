@@ -129,31 +129,20 @@ ordered_entry_dict = OrderedDict.fromkeys(mdf_order)
 list_markers = ['\\ps','\\lf', '\\so', '\\pdl','\\bw' ]
 #list_markers.append(specific_list_markers)
 
-class Employee(object):
-    def __init__(self, name, last_name, age):
-        self.name = name
-        self.last_name = last_name
-        self.age = age
-
-d = {'name': 'Oscar', 'last_name': 'Reyes', 'age':32 }
-e = Employee(**d) 
-
 class Marker(object):
-	def __init__(self, marker, name, language, parent_marker, character_style):
+	def __init__(self, marker, name, language, parent_marker):
 		self.marker = marker
 		self.name = name
 		self.language = language
 		self.parent_marker = parent_marker
-		self.character_style = character_style
 
 class XRef(object):
-	
-	def __init__(self,  entry, marker, ref, ref_type, ref_exists):
-		self.entry = entry
-		self.marker = marker
-		self.ref = ref_type
-		self.ref_type = ref
-		self.ref_exists = ref_exists
+
+	def __init__(self,  lexeme, xref_marker, xref, exists):
+		self.lexeme = lexeme
+		self.xref_marker = xref_marker
+		self.xref = xref
+		self.exists = exists
 		
 class XRefs(object):
 	
@@ -166,15 +155,6 @@ class XRefs(object):
 		self.xref_markers = xref_markers
 		self.sfm = sfm
 		self.crossrefs = self.find_cross_refs(sfm,xref_markers)
-		
-	# for entry in sfm:
-		# for marker,data in entry:
-			# if marker == record_marker:
-				# Entry = data
-			# if marker in xrefmarkers:
-				# Marker = marker
-				# Ref = data
-				
 
 		
 def read_typ_file(filein):
@@ -1337,11 +1317,33 @@ def show_main_menu(sfm):
 			typ = read_typ_file(args.input)
 			
 		if choice == '15':
-			sfm = sfmlist_from_file(args.input)
+			#sfm = sfmlist_from_file(args.input)
+			crossrefs = []
+			xref_markers = ['\va','\sy','\se','\mn','\lv','\cf','\an']
+			lexemes = [entry[0][1] for entry in sfm]
+			for entry in sfm:
+				lexeme = None
+				xrefs = None
+				for field in entry:
+					marker,data = field
+					if marker in new_entry_markers:
+						lexeme = data
+					if marker in xref_markers:
+						xref_marker = marker
+						xref = data
+						exists = xref in lexemes
+						crossrefs.append(XRef(lexeme,xref_marker,xref, exists))
+						
 			
-			xrefs = XRefs(sfm, xref_markers = ['\va','\sy','\se','\mn','\lv','\cf','\an'])
-			print("xrefs is {}".format(xrefs))
-		
+
+			#print("Entries are {}".format(entries))
+			for xref in crossrefs:
+				if xref.exists:
+					exists = "is present"
+				else :
+					exists = "is not present"
+				print("Lexeme {} has {} {} which {}.".format(xref.lexeme,xref.xref_marker,xref.xref, exists))
+			
 	return sfm, out_file, summary_file
 
 

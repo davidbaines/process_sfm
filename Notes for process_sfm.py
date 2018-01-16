@@ -29,3 +29,20 @@ Create objects from the Entries, Senses, Examples, and Subentries.
 
 Read in a CSV file with markers in each cell so that it can be converted into an SFM file.
 Provide the ability to write out SFM files in this format too.
+
+
+
+Work to do:
+
+Fix problems with markers being consider 'expected' and 'unexpected' at the same time.
+Change the term to 'MDF' standard marker.
+Include info about what MDF markers usually mean.
+
+Get Cross reference information working.
+
+Deal with \_sh at the begining of a file well, without removing the info.
+
+Count populated and emtpy markers.
+
+
+

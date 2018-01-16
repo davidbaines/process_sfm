@@ -5,8 +5,8 @@
 # python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in "C:\Users\David\Documents\Importing\Demo\Ouldeme.csv" -out "C:\Users\David\Documents\Importing\Demo\Ouldeme.sfm" -r "C:\Users\David\Documents\Importing\Demo\Ouldeme.txt"
 
 # python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in "C:\Users\David\Documents\Importing\Demo\Tobelo.csv" -out "C:\Users\David\Documents\Importing\Demo\Tobelo.sfm" -r "C:\Users\David\Documents\Importing\Demo\Tobelo.txt"
-
 # python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in c:\Users\David\Documents\Importing\ -in "C:\Users\David\Documents\Importing\Demo\Test.db" -out "C:\Users\David\Documents\Importing\Demo\Test.sfm" -r "C:\Users\David\Documents\Importing\Demo\Test.txt"
+# python C:\Users\David\Documents\GitHub\process_sfm\process_sfm.py -in "C:\Users\David\Documents\Importing\Proto Sama-Bajaw\Toolbox New Project\Settings\dictionary2.sfm" -out "C:\Users\David\Documents\Importing\Proto Sama-Bajaw\Toolbox New Project\Settings\dictionary.out" -r "C:\Users\David\Documents\Importing\Proto Sama-Bajaw\Toolbox New Project\Settings\dictionary.info"
 
 # SFM utilities
 # This program should read in a text file in either SFM or csv format.
@@ -27,15 +27,17 @@
 
 import unicodedata
 import os, argparse, io, csv, re
+import difflib 
 from collections import Counter as Counter
 from collections import OrderedDict as OrderedDict
 from collections import namedtuple
 from copy import deepcopy
-import difflib 
 from process_sfm_menu import show_menu, main_menu
 from easygui import fileopenbox, filesavebox, buttonbox, choicebox, diropenbox
 from alphabet_detector import AlphabetDetector
 from operator import itemgetter
+import process_csv
+
 #print("main_menu is {} and it's type is {}".format(main_menu,type(main_menu)))
 #def fileopenbox(msg=None, title=None, default='*', filetypes=None, multiple=False)
 
@@ -277,8 +279,8 @@ def writemarkers(marker_count,marker_count_with_data,filename,write_mode=append)
 	with io.open(filename,write_mode,encoding=utf8) as out:
 		out.write("\n---------------This is start of the output from writemarkers---------------\n")
 		out.write("{0:<8s}{1:>10s}{2:>8s}{3:>10s}\n".format('Marker','With data','Empty','Total'))
-		for m, count in marker_count.most_common():
-			out.write("{0:<8s}{1:>10d}{2:>8d}{3:>10d}\n".format(m,marker_count_with_data[m],count - marker_count_with_data[m],count))
+		for m, freq in marker_count.most_common():
+			out.write("{0:<8s}{1:>10d}{2:>8d}{3:>10d}\n".format(m,marker_count_with_data[m],marker_count[m] - marker_count_with_data[m],freq))
 		out.write("\n---------------This is the end of the output from writemarkers---------------\n")
 
 def printmarkers(marker_count,marker_count_with_data):
@@ -334,6 +336,10 @@ def output_markers(marker_count,m_with_data,filename = '',write_mode=append):
 def sfm_from_list(sfmlist):
 	sfm = []
 	entry = []
+	marker_count = Counter()
+	marker_count_with_data = Counter()
+	emtpy_marker_count = Counter()
+	markers_per_entry = Counter()
 	
 	for i , line in enumerate(sfmlist):			
 		line = line.strip()
@@ -342,9 +348,14 @@ def sfm_from_list(sfmlist):
 			continue
 		elif space in line:
 			marker, data = line.split(space, 1)
+			marker_count.update([marker])
+			marker_count_with_data.update([marker])
 		else:
 			marker = line
 			data = empty
+			emtpy_marker_count.update([marker])
+			print("Line {} has the {}th marker {} without data.".format(lineno,emtpy_marker_count[marker],marker))
+			marker_count.update([marker])
 
 		if marker[0] != slash:
 			raise ValueError("\nLine {} doesn't begin with a slash. Line is:\n{}. First character is:\n{}".format(lineno,line,marker[0]))
@@ -352,17 +363,54 @@ def sfm_from_list(sfmlist):
 		if marker in new_entry_markers and entry != []:
 			sfm.append(entry)
 			entry = [[marker,data]]
+#			markers_per_entry.update(len(entry))
+			
 		else :
 			entry.append([marker,data])
 
 	sfm_len =  0
 	for entry in sfm:
 		sfm_len = sfm_len + len(entry)
+		print(entry)
+		print()
 	
 	#print("\nCompleting sfm_from_list.")
 	#print("There are {} entries in the list.\n".format(len(sfm)))
 	#print("There are {} fields in total in the entries.\n".format(sfm_len))
-	return sfm#, marker_count, marker_count_with_data		
+	return sfm, marker_count, marker_count_with_data#, markers_per_entry
+	
+# def sfm_from_list(sfmlist):
+	# sfm = []
+	# entry = []
+	
+	# for i , line in enumerate(sfmlist):			
+		# line = line.strip()
+		# lineno = i + 1
+		# if line == empty:
+			# continue
+		# elif space in line:
+			# marker, data = line.split(space, 1)
+		# else:
+			# marker = line
+			# data = empty
+
+		# if marker[0] != slash:
+			# raise ValueError("\nLine {} doesn't begin with a slash. Line is:\n{}. First character is:\n{}".format(lineno,line,marker[0]))
+			
+		# if marker in new_entry_markers and entry != []:
+			# sfm.append(entry)
+			# entry = [[marker,data]]
+		# else :
+			# entry.append([marker,data])
+
+	# sfm_len =  0
+	# for entry in sfm:
+		# sfm_len = sfm_len + len(entry)
+	
+	# #print("\nCompleting sfm_from_list.")
+	# #print("There are {} entries in the list.\n".format(len(sfm)))
+	# #print("There are {} fields in total in the entries.\n".format(sfm_len))
+	# return sfm#, marker_count, marker_count_with_data		
 
 
 def sfmlist_from_file(filename):
@@ -532,114 +580,7 @@ def readsfm(filename):
 	return sfm#, marker_count, marker_count_with_data		
 	
 
-def readcsv(filename):
 
-	#print("Reading csv file : {}".format(filename))
-	with open(filename, 'r', encoding="utf8") as infile:
-		datareader = csv.reader(infile, dialect='default')
-		firstline = next(datareader)
-	print("\n\nThe first line of the data is: \n{}".format(firstline))
-	choice = sanitised_input("Does the first line contain markers only?",str)
-	if choice.lower()[0] == 'y':
-		no_slash_cells = []
-		sfm, markers = readcsv_with_headers(filename)
-		return sfm, markers, no_slash_cells
-	else:	
-		sfm, markers, no_slash_cells = read_csv_with_markers_in_cells(filename)
-		#print("Returning sfm,markers and no_slash_cells, lengths are {}, {} and {} respectively.\n".format(len(sfm),len(markers),len(no_slash_cells)))
-		return sfm, markers, no_slash_cells
-	
-def read_csv_with_markers_in_cells(filename):
-	print("\nReading csv file: {}\nLooking for markers in each cell.\n".format(filename))
-
-	sfm = []
-	markers = []
-
-	No_slash_info = namedtuple('No_slash_info',['row','column','contents','previous_cell'])
-	no_slash_cells = []
-	
-	with open(filename, 'r', encoding="utf8") as infile:
-		datareader = csv.reader(infile, dialect='default')
-		firstline = next(datareader)		
-				
-		for i,row in enumerate(datareader):
-			entry = []
-			previous_cell = empty
-			#firstdata = row[0].split(space,1)[1]
-			#print(firstdata)	
-			for j,cell in enumerate(row):
-				if cell == empty :
-					previous_cell = empty
-					continue
-				elif not cell[0] == slash :
-					no_slash_cells.append(No_slash_info(i+2,num_to_column(j+1), cell,previous_cell))
-					#raise ValueError("Cell in Row {}, Column {} doesn't contain a slash. Contents are :{}".format(i+2,num_to_column(j+1), cell))
-					previous_cell = cell
-					continue
-				if space in cell:
-					#Separate the marker from the data.
-					marker, data = cell.split(space,1)
-					if len(data) == 0 :
-						print("This marker {} has no data {}".format(marker,data))
-						
-					entry.append([marker,data])
-					previous_cell = cell
-			sfm.append(entry)
-		#print("Returning sfm,markers and no_slash_cells, lengths are {}, {} and {} respectively.\n".format(len(sfm),len(markers),len(no_slash_cells)))
-		#print("sfm is: \n {}".format(sfm))
-		#exit()
-	return sfm , markers, no_slash_cells
-
-def readcsv_with_headers(filename):
-
-	print("\nReading csv file: {}\nLooking for markers in the first line.\n".format(filename))
-	markers = []
-	sfm = []
-	#These 'vital markers' are added to the entry even when they contain no data.
-	#Other empty markers are not added to the entry.
-	vital_markers = ["\lx","\ps","\sn"]
-	
-	with open(filename, 'r', encoding="utf8") as infile:
-		datareader = csv.reader(infile, dialect='default')
-		firstline = next(datareader)
-		for i, marker in enumerate(firstline):
-			if marker == empty:
-				raise ValueError("\nColumn heading for column {} is empty.".format(i+1))
-			elif len(marker) > 0 and marker[0] != slash:
-				raise ValueError("\nThe column heading for column {} doesn't begin with a slash.\nHeading is {}\n".format(i+1,marker))
-			elif len(marker) > 1 and marker[0] == slash:
-				markers.append(marker)
-			else:
-				raise ValueError("\nSeems like a logic error in the code in the function readcsv_with_headers!\n")
-
-		print(firstline)
-		print(markers)
-		
-		# print("{} cells were found on the first line.".format(len(firstline)))
-		# print("{} markers were found before the first empty cell.".format(empty_header_cell[0]))
-		# print("{} empty header cells were found.".format(len(empty_header_cell)))
-		# if len(firstline) == len(empty_header_cell) + empty_header_cell[0] :
-			# print("No cells had data after the first empty header cell. {}".format(len(empty_header_cell)))
-		
-		for i,row in enumerate(datareader):
-			entry = []
-			for j,data in enumerate(row):
-				if j+1 > len(markers):
-					print("Found the {}th data item: {} and there are only {} markers".format(j+1,data,len(markers)))
-					exit()
-				marker = markers[j]
-				if len(data) > 0:
-					entry.append([marker,data])		
-				elif data == empty :
-					if marker in vital_markers:
-						entry.append([marker,empty])
-					else:
-						continue
-				else:
-					raise ValueError("Don't know what happened here!\n Marker is {} and data is {} line no. is {}".format(marker,data,j))
-					
-			sfm.append(entry)
-	return sfm, markers
 
 
 def reorder_entries(sfm,entry_order_dict):
@@ -674,9 +615,9 @@ def writesfm(sfm,mode,filename,order=None):
 	print("\n In writesfm. SFM has {} entries.\n".format(len(sfm)))
 	lines = []
 	for entry in sfm:
-		#print(entry)
+		#print("Entry is: {}".format(entry))
 		for field in entry:
-			#print(field)
+			#print("Field is: {}".format(field))
 			if len(field) != 2 :
 				print("\nThis field doesn't contain exactly two items, a marker and data. : {}\n".format(field))
 			marker, data = field
@@ -712,26 +653,6 @@ def writesfm_without_empty_markers(sfm,mode,filename):
 		lines = lines[1:]
 	with io.open(filename, mode, encoding=utf8) as out:
 		out.writelines(lines)
-		
-
-def writecsv(sfm, mode, filename):
-# ''' Write an sfm to a csv file'''
-	lines = []
-	for i,entry in enumerate(sfm):
-		line = empty
-		for field in entry:
-			marker, data = field
-			if line == empty :
-				line = marker + space + data
-			else :
-				line = line + comma + marker + space + data
-			if i < 10 : print(line)
-		
-		lines.append(line + newline)
-				
-	with io.open(filename, mode, encoding=utf8) as out:
-		out.writelines(lines)
-
 	
 def marker_definitions(filename,mode=read,markers=None):
 	'''Read or write to a csv file containing the names of each marker and it's language and script'''
@@ -742,7 +663,6 @@ def marker_definitions(filename,mode=read,markers=None):
 		
 			f = csv.DictWriter(out,markers)
 			f.writeheader()
-			
 
 def sanitised_input(prompt, type_=None, min_=None, max_=None, range_=None):
 	if min_ is not None and max_ is not None and max_ < min_:
@@ -897,11 +817,13 @@ def depth(lst):
 def count_markers(sfm):
 	marker_count = Counter()
 	marker_count_with_data = Counter()
+	markers_per_entry = Counter()
 	
 	#print("sfm has depth = {}".format(depth(sfm)))
 	#print("sfm has type = {}".format(type(sfm)))
 	for entry in sfm:
 		#print("Entry has {} fields. {}	".format(len(entry),entry))
+		#markers_per_entry.update(len(entry))
 		
 		for field in entry:
 			if len(field) == 2:
@@ -910,6 +832,7 @@ def count_markers(sfm):
 				marker_count.update([marker])
 				marker_count_with_data.update([marker])
 			elif len(field) == 1:
+				print("Field has {} parts. {}".format(len(field),field))
 				marker = field
 				#print("Marker is {},length is {}".format(field,len(field)))
 				marker_count.update([field])
@@ -1042,10 +965,10 @@ def process_input_file(filein):
 	filetype = determine_file_type(filein)
 	
 	if filetype == sfm_ext :
-		sfm = sfm_from_list(sfmlist_from_file(filein))
+		sfm, marker_count, marker_count_with_data = sfm_from_list(sfmlist_from_file(filein))
 		
 		#sfm = read_sfm_file(filein)
-		return sfm
+		return sfm, marker_count, marker_count_with_data
 		
 	elif filetype == csv_ext :
 		sfm , markers, no_slash_cells = readcsv(filein)
@@ -1066,7 +989,7 @@ def process_input_file(filein):
 					
 		#Note that filetype might not be set and the data is returned as a nested list (sfm not csv).
 		
-		return sfm
+		return sfm, None, None
 		
 	# elif filetype == typ_ext:
 		# print("Extension is {}".format(filetype))
@@ -1307,7 +1230,6 @@ def show_main_menu(sfm):
 			elif sort_order == 4:
 				sfm = sort_sfm(sfm, 'shortest_first', False)
 			
-
 		if choice =='13':
 		
 			number = sanitised_input("There are {} entries, how many would you to show? ".format(len(sfm)), int)
@@ -1334,15 +1256,20 @@ def show_main_menu(sfm):
 						exists = xref in lexemes
 						crossrefs.append(XRef(lexeme,xref_marker,xref, exists))
 						
-			
+		if choice == '16':
+			for entry in sfm:
+				entry.append([new_marker,files_and_values[file.name]])
 
 			#print("Entries are {}".format(entries))
-			for xref in crossrefs:
-				if xref.exists:
-					exists = "is present"
-				else :
-					exists = "is not present"
-				print("Lexeme {} has {} {} which {}.".format(xref.lexeme,xref.xref_marker,xref.xref, exists))
+			xrefs_exist	= [xref for xref in crossrefs if xref.exists]
+			xrefs_missing = [xref for xref in crossrefs if not xref.exists]
+			
+			print("\nThe following cross references refer to existing entries.\n")
+			for xref in xrefs_exist:
+				print("Lexeme {} has marker: {} which refers to : {}".format(xref.lexeme,xref.xref_marker,xref.xref))
+			print("\nThe following cross references do not have matching entries.\n")
+			for xref in xrefs_missing:
+				print("Lexeme {} has marker: {} which refers to : {}".format(xref.lexeme,xref.xref_marker,xref.xref))
 			
 	return sfm, out_file, summary_file
 
@@ -1355,7 +1282,7 @@ if __name__ == "__main__":
 	if not args.input:
 		args.input = fileopenbox(title="Choose a file to process.", filetypes=filemasks)
 
-	sfm = process_input_file(args.input)
+	sfm , marker_count, marker_count_with_data = process_input_file(args.input)
 	print("Got sfm with {} entries\n".format(len(sfm)))
 	
 	if not args.output:

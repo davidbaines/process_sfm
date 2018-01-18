@@ -37,8 +37,13 @@ from easygui import fileopenbox, filesavebox, buttonbox, choicebox, diropenbox
 from alphabet_detector import AlphabetDetector
 from operator import itemgetter
 import process_csv
+import logging, sys
 
-#print("main_menu is {} and it's type is {}".format(main_menu,type(main_menu)))
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+
+logging.debug('A debug message!')
+	
+#logging.info("main_menu is {} and it's type is {}".format(main_menu,type(main_menu)))
 #def fileopenbox(msg=None, title=None, default='*', filetypes=None, multiple=False)
 
 csv.register_dialect('default')
@@ -50,8 +55,8 @@ parser.add_argument("-r" ,"--report", help="Specify the filename for a report ab
 #parser.add_argument( dest='feature', default=False, action='store_true')
 #parser.add_argument("-dore", "--do_regex", default=False, action="store_true", help="Process the re and save file as output only.")
 
-#print("\n\n****************************\n")
-#print(args)
+#logging.info("\n\n****************************\n")
+#logging.info(args)
 
 slash = '\\'
 space = ' '
@@ -145,7 +150,8 @@ class XRef(object):
 		self.xref_marker = xref_marker
 		self.xref = xref
 		self.exists = exists
-		
+		return
+	
 class XRefs(object):
 	
 	def find_cross_refs(self,sfm,xref_markers):
@@ -157,7 +163,7 @@ class XRefs(object):
 		self.xref_markers = xref_markers
 		self.sfm = sfm
 		self.crossrefs = self.find_cross_refs(sfm,xref_markers)
-
+		return
 		
 def read_typ_file(filein):
 	typ = read_sfm_file(filein)
@@ -176,7 +182,7 @@ def read_typ_file(filein):
 		mkr = name = parent = None
 		for field in entry:
 			key , value = field
-			print('key is : {}, and value is {}'.format(key,value))
+			logging.info('key is : {}, and value is {}'.format(key,value))
 			if key == '\\+mkr':
 				mkr = value
 			if key == '\\nam':
@@ -188,13 +194,12 @@ def read_typ_file(filein):
 				defined_markers.append(this_marker)
 			
 	groups = dict()
-	print("HERE")
 	for marker in defined_markers:
-		print(marker)
-		print(marker[2])
+		logging.info(marker)
+		logging.info(marker[2])
 		#continue
 	for marker in defined_markers:
-		print("There are {} defined markers.\nGroups are: {}".format(len(defined_markers),groups))
+		logging.info("There are {} defined markers.\nGroups are: {}".format(len(defined_markers),groups))
 		if marker.mkrOverThis not in groups.keys():
 			groups[marker.mkrOverThis] = [marker.mkr]
 		elif marker.mkrOverThis:
@@ -204,17 +209,15 @@ def read_typ_file(filein):
 	
 	groups_by_length = sorted(groups, key=lambda k: len(groups[k]), reverse=False)
 	for k in groups_by_length:
-		print(k, groups[k])
+		logging.info(k, groups[k])
 	exit()
 	# for group in groups:
-		# print("Marker for parent group: {}".format(group))
-		# print("{}".format(groups[group]))
+		# logging.info("Marker for parent group: {}".format(group))
+		# logging.info("{}".format(groups[group]))
 
-	print("\nGroups found are as follows:\n{}".format(groups))
+	logging.info("\nGroups found are as follows:\n{}".format(groups))
 	return typ, groups
 
-
-				
 def get_lexemes(sfm):
 	lexemes = []
 	for entry in sfm:
@@ -273,16 +276,21 @@ def output_counter(c,title,limit=0,filename='',mode=append):
 	return None
 
 
-def writemarkers(marker_count,marker_count_with_data,filename,write_mode=append):
-	'''Write to a given file information about the frequency of markers and markers with data.'''
-
+def writemarkers(marker_count,marker_count_with_data,emtpy_marker_count,filename,write_mode=append):
+	'''Write to a file information about the frequency of markers and markers with data.'''
+	logging.info("\nIn writemarkers")
+	logging.info("Marker_count is \n{}".format(marker_count))
+	logging.info("Marker_count_with_data is \n{}".format(marker_count_with_data))
+	logging.info("Empty_marker_count is \n{}".format(emtpy_marker_count))
+	
 	with io.open(filename,write_mode,encoding=utf8) as out:
 		out.write("\n---------------This is start of the output from writemarkers---------------\n")
 		out.write("{0:<8s}{1:>10s}{2:>8s}{3:>10s}\n".format('Marker','With data','Empty','Total'))
-		for m, freq in marker_count.most_common():
-			out.write("{0:<8s}{1:>10d}{2:>8d}{3:>10d}\n".format(m,marker_count_with_data[m],marker_count[m] - marker_count_with_data[m],freq))
+		for m, count in marker_count.most_common():
+			out.write("{0:<8s}{1:>10d}{2:>8d}{3:>10d}\n".format(m,marker_count_with_data[m],emtpy_marker_count[m],marker_count[m]))
 		out.write("\n---------------This is the end of the output from writemarkers---------------\n")
-
+	return
+	
 def printmarkers(marker_count,marker_count_with_data):
 	title = "{0:<8s}{1:>10s}{2:>8s}{3:>10s}\n".format('Marker','With data','Empty','Total')
 	lines = []
@@ -293,7 +301,8 @@ def printmarkers(marker_count,marker_count_with_data):
 	for line in lines:
 		print(line[0])
 	print()
-
+	return 
+	
 def print_sfm(sfm, maximum):
 	
 	for entry in sfm[0:maximum]:
@@ -301,6 +310,7 @@ def print_sfm(sfm, maximum):
 			marker , data = field
 			print(marker,data)
 		print()
+	return
 	
 def sort_sfm(sfm, sort_by = 'lexeme', rev = False):
 #Sort the sfm entries. Either sort alphabetically on the lexeme form or by the number of field in the entry.
@@ -310,13 +320,18 @@ def sort_sfm(sfm, sort_by = 'lexeme', rev = False):
 		return sorted(sfm, key=lambda x: x[0][1], reverse = rev)
 	elif sort_by == 'shortest_first' :
 		return sorted(sfm, key=lambda x: len(x), reverse = rev)
-		
+	return	
 
-def output_markers(marker_count,m_with_data,filename = '',write_mode=append):
-	title = "{0:<8s}{1:>10s}{2:>8s}{3:>10s}".format('Marker','With data','Empty','Total')
+def output_markers(marker_count,marker_count_with_data,emtpy_marker_count,filename = '',write_mode=append):
+	logging.info("\nIn output_markers")
+	logging.info("Marker_count is \n{}".format(marker_count))
+	logging.info("Marker_count_with_data is \n{}".format(marker_count_with_data))
+	logging.info("Empty_marker_count is \n{}".format(emtpy_marker_count))
+	
+	title = "{0:<8s}{1:>10s}{2:>8s}{3:>10s}".format('Marker','With data','THIS','Total')
 	lines = ["\n---------------This is start of the output from output markers---------------\n"]
 	for m, count in marker_count.most_common():
-		lines.append(["{0:<8s}{1:>10d}{2:>8d}{3:>10d}".format(m,m_with_data[m],count - m_with_data[m],count)])
+		lines.append(["{0:<8s}{1:>10d}{2:>8d}{3:>10d}".format(m,marker_count_with_data[m],emtpy_marker_count[m],count)])
 	lines.append("\n---------------This is the end of the output from output markers---------------\n")	
 	
 	if filename == '' and lines :
@@ -332,30 +347,36 @@ def output_markers(marker_count,m_with_data,filename = '',write_mode=append):
 			for line in lines:
 				out.write(line[0] + newline)
 			out.write(newline)
-
+	logging.info("Leaving output_markers\n")
+	return
+	
 def sfm_from_list(sfmlist):
 	sfm = []
 	entry = []
 	marker_count = Counter()
 	marker_count_with_data = Counter()
 	emtpy_marker_count = Counter()
-	markers_per_entry = Counter()
+	#markers_per_entry = Counter()
+	field_count = 0
 	
 	for i , line in enumerate(sfmlist):			
 		line = line.strip()
 		lineno = i + 1
-		if line == empty:
-			continue
-		elif space in line:
-			marker, data = line.split(space, 1)
-			marker_count.update([marker])
-			marker_count_with_data.update([marker])
-		else:
-			marker = line
-			data = empty
-			emtpy_marker_count.update([marker])
-			print("Line {} has the {}th marker {} without data.".format(lineno,emtpy_marker_count[marker],marker))
-			marker_count.update([marker])
+		if line:
+			field_count += 1
+			if space in line:
+				marker, data = line.split(space, 1)
+				marker_count.update([marker])
+				if data:
+					marker_count_with_data.update([marker])
+				else:
+					emtpy_marker_count.update([marker])
+					logging.info("Line {} has the {}th  {} marker without data.".format(lineno,emtpy_marker_count[marker],marker))
+			else:
+				marker = line
+				marker_count.update([marker])
+				emtpy_marker_count.update([marker])
+				print("Line {} has the {}th  {} marker without data.".format(lineno,emtpy_marker_count[marker],marker))
 
 		if marker[0] != slash:
 			raise ValueError("\nLine {} doesn't begin with a slash. Line is:\n{}. First character is:\n{}".format(lineno,line,marker[0]))
@@ -367,56 +388,20 @@ def sfm_from_list(sfmlist):
 			
 		else :
 			entry.append([marker,data])
-
-	sfm_len =  0
-	for entry in sfm:
-		sfm_len = sfm_len + len(entry)
-		print(entry)
-		print()
 	
-	#print("\nCompleting sfm_from_list.")
-	#print("There are {} entries in the list.\n".format(len(sfm)))
-	#print("There are {} fields in total in the entries.\n".format(sfm_len))
-	return sfm, marker_count, marker_count_with_data#, markers_per_entry
+	logging.info("\nCompleting sfm_from_list.")
+	logging.info("There are {} entries in the list.\n".format(len(sfm)))
+	logging.info("There are {} fields in total in the entries.\n".format(field_count))	
+	logging.info("Marker_count is \n{}".format(marker_count))
+	logging.info("Marker_count_with_data is \n{}".format(marker_count_with_data))
+	logging.info("Empty_marker_count is \n{}".format(emtpy_marker_count))
+
+	return sfm, marker_count, marker_count_with_data, emtpy_marker_count#, markers_per_entry
 	
-# def sfm_from_list(sfmlist):
-	# sfm = []
-	# entry = []
-	
-	# for i , line in enumerate(sfmlist):			
-		# line = line.strip()
-		# lineno = i + 1
-		# if line == empty:
-			# continue
-		# elif space in line:
-			# marker, data = line.split(space, 1)
-		# else:
-			# marker = line
-			# data = empty
-
-		# if marker[0] != slash:
-			# raise ValueError("\nLine {} doesn't begin with a slash. Line is:\n{}. First character is:\n{}".format(lineno,line,marker[0]))
-			
-		# if marker in new_entry_markers and entry != []:
-			# sfm.append(entry)
-			# entry = [[marker,data]]
-		# else :
-			# entry.append([marker,data])
-
-	# sfm_len =  0
-	# for entry in sfm:
-		# sfm_len = sfm_len + len(entry)
-	
-	# #print("\nCompleting sfm_from_list.")
-	# #print("There are {} entries in the list.\n".format(len(sfm)))
-	# #print("There are {} fields in total in the entries.\n".format(sfm_len))
-	# return sfm#, marker_count, marker_count_with_data		
-
-
 def sfmlist_from_file(filename):
 	'''Read in an sfm file, return the file as a list of unicode strings.'''
 	
-	#print("\nReading sfm file : {}".format(filename))
+	#logging.info("\nReading sfm file : {}".format(filename))
 	non_blank = 0
 	blank = 0
 	sfmlist = []
@@ -433,14 +418,14 @@ def sfmlist_from_file(filename):
 				non_blank += 1
 				sfmlist.append(line_str)
 				
-	#print("Completing sfmlist_from_file.")
-	#print("There are {} lines in the file.\n".format(blank + non_blank))
-	#print("There are {} lines with data and {} blank lines in the file.".format(non_blank,blank))
+	#logging.info("Completing sfmlist_from_file.")
+	#logging.info("There are {} lines in the file.\n".format(blank + non_blank))
+	#logging.info("There are {} lines with data and {} blank lines in the file.".format(non_blank,blank))
 	return sfmlist
 
 def read_sfm_file(filename):
 	'''Read in an sfm file, return the file, the marker counts and the counts of markers with data.'''
-	print("\nReading sfm file : {}\n".format(filename))
+	logging.info("\nReading sfm file : {}\n".format(filename))
 	fields_in_file = 0
 	sfm = []
 	entry = []
@@ -455,7 +440,7 @@ def read_sfm_file(filename):
 		
 		if line == empty:
 			is_new_entry = True
-			print()
+			logging.info()
 			continue
 			
 		if space in line:
@@ -469,11 +454,11 @@ def read_sfm_file(filename):
 		if marker[0] != slash:
 			raise ValueError("\nLine {} doesn't begin with a slash. Line is:\n{}. First character is:\n{}".format(lineno,line,marker[0]))
 
-		print("{}		{}".format(marker,data))
+		logging.info("{}		{}".format(marker,data))
 
 		if is_new_entry :
 			new_entry_markers.update([marker])
-			print("New entry markers are: {}".format(new_entry_markers))
+			logging.info("New entry markers are: {}".format(new_entry_markers))
 			is_new_entry = False
 		
 		if is_new_entry and marker:
@@ -481,7 +466,7 @@ def read_sfm_file(filename):
 			is_new_entry = False
 
 		if marker in new_entry_markers and entry != []:
-			print("Appended to entry")
+			logging.info("Appended to entry")
 			sfm.append(entry)
 			entry = [[marker,data]]
 		else :
@@ -489,32 +474,32 @@ def read_sfm_file(filename):
 	sfm.append(entry)
 	
 	#Remove the \sh line if present.
-	print("\nFirst entry is \n")
-	print(sfm[0])
-	print("\nSecond entry is \n")
-	print(sfm[1])
+	logging.info("\nFirst entry is \n")
+	logging.info(sfm[0])
+	logging.info("\nSecond entry is \n")
+	logging.info(sfm[1])
 	
 	firstmarker , data = sfm[0][0]
 	if	firstmarker == "\\_sh" :
-		print("\nFirst marker is {}.\n Deleting first entry.".format(firstmarker))
+		logging.info("\nFirst marker is {}.\n Deleting first entry.".format(firstmarker))
 		del sfm[0] 
-		print("\nFirst entry is {} {}".format(sfm[0][0],sfm[0],[1]))
-		print("\nSecond entry is {} {}".format(sfm[1][0],sfm[1],[1]))
+		logging.info("\nFirst entry is {} {}".format(sfm[0][0],sfm[0],[1]))
+		logging.info("\nSecond entry is {} {}".format(sfm[1][0],sfm[1],[1]))
 	#	exit()
 		
 	sfm_len =  0
 	for entry in sfm:
 		sfm_len = sfm_len + len(entry)
-	print("\nCompleting readsfm.")
-	print("There are {} fields in total in {} entries in the file.".format(sfm_len,len(sfm)))
-	print("SFM is of type {}.".format(type(sfm)))
-	print("There are {} lines with data in the file.\n".format(fields_in_file))
+	logging.info("There are {} fields in total in {} entries in the file.".format(sfm_len,len(sfm)))
+	logging.info("SFM is of type {}.".format(type(sfm)))
+	logging.info("There are {} lines with data in the file.\n".format(fields_in_file))
+	logging.info("\nLeaving readsfm.")
 	
 	return sfm#, marker_count, marker_count_with_data		
 	
 def readsfm(filename):
 	'''Read in an sfm file, return the file, the marker counts and the counts of markers with data.'''
-	print("\nReading sfm file : {}\n".format(filename))
+	logging.info("\nReading sfm file : {}\n".format(filename))
 	fields_in_file = 0
 	sfm = []
 	entry = []
@@ -543,9 +528,9 @@ def readsfm(filename):
 				
 			if marker[0] != slash:
 				raise ValueError("\nLine {} doesn't begin with a slash. Line is:\n{}. First character is:\n{}".format(lineno,line,marker[0]))
-			print("{}		{}".format(marker,data))
+			logging.info("{}		{}".format(marker,data))
 			if marker in new_entry_markers and entry != []:
-				print("Appended to entry")
+				logging.info("Appended to entry")
 				sfm.append(entry)
 				entry = [[marker,data]]
 				is_new_entry = False
@@ -556,40 +541,36 @@ def readsfm(filename):
 	sfm.append(entry)
 	
 	#Remove the \sh line if present.
-	print("\nFirst entry is \n")
-	print(sfm[0])
-	print("\nSecond entry is \n")
-	print(sfm[1])
+	logging.info("\nFirst entry is \n")
+	logging.info(sfm[0])
+	logging.info("\nSecond entry is \n")
+	logging.info(sfm[1])
 	
 	firstmarker , data = sfm[0][0]
 	if	firstmarker == "\\_sh" :
-		print("\nFirst marker is {}.\n Deleting first entry.".format(firstmarker))
+		logging.info("\nFirst marker is {}.\n Deleting first entry.".format(firstmarker))
 		del sfm[0] 
-		print("\nFirst entry is {} {}".format(sfm[0][0],sfm[0],[1]))
-		print("\nSecond entry is {} {}".format(sfm[1][0],sfm[1],[1]))
+		logging.info("\nFirst entry is {} {}".format(sfm[0][0],sfm[0],[1]))
+		logging.info("\nSecond entry is {} {}".format(sfm[1][0],sfm[1],[1]))
 	#	exit()
 		
 	sfm_len =  0
 	for entry in sfm:
 		sfm_len = sfm_len + len(entry)
-	print("\nCompleting readsfm.")
-	print("There are {} fields in total in  {} entries in the file.".format(sfm_len,len(sfm)))
-	print("SFM list has {} fields.".format(sfm_len))
-	print("There are {} lines with data in the file.\n".format(fields_in_file))
+	logging.info("There are {} fields in total in  {} entries in the file.".format(sfm_len,len(sfm)))
+	logging.info("SFM list has {} fields.".format(sfm_len))
+	logging.info("There are {} lines with data in the file.\n".format(fields_in_file))
+	logging.info("Leaving readsfm.")
 		
-	return sfm#, marker_count, marker_count_with_data		
-	
-
-
-
+	return sfm#, marker_count, marker_count_with_data
 
 def reorder_entries(sfm,entry_order_dict):
 	
 	sfm_reordered = []
-	#print("Ordering entries according to :\n{}".format(entry_order_dict))
+	#logging.info("Ordering entries according to :\n{}".format(entry_order_dict))
 	for i,entry in enumerate(sfm):
 		ordered_entry_dict = deepcopy(entry_order_dict)
-		#print("o-e-d and e-o-d are:{}\nAND:\n{}".format(ordered_entry_dict,entry_order_dict))
+		#logging.info("o-e-d and e-o-d are:{}\nAND:\n{}".format(ordered_entry_dict,entry_order_dict))
 		for field in entry:
 			marker,data = field
 			ordered_entry_dict[marker] = data
@@ -599,27 +580,27 @@ def reorder_entries(sfm,entry_order_dict):
 					ordered_entry.append([k,v])
 			#ordered_entry = [[k,v] for k, v in ordered_entry_dict.items() if v is not None]
 		
-		#print("ordered_entry is {}\n".format(ordered_entry))
+		#logging.info("ordered_entry is {}\n".format(ordered_entry))
 		sfm_reordered.append(ordered_entry)
 #		if i > 2:
 #			exit()
 	return sfm_reordered
 
-
 def writesfm(sfm,mode,filename,order=None):
 	'''Given an sfm as a list of lists write it to a file.'''
 
+	logging.info("\n In writesfm. SFM has {} entries.\n".format(len(sfm)))
+	
 	if order :
 		sfm = reorder_entries(sfm,order)
-		print("\nFirst entry after reordering is {}".format(sfm[0]))
-	print("\n In writesfm. SFM has {} entries.\n".format(len(sfm)))
+		logging.info("\nFirst entry after reordering is {}".format(sfm[0]))
 	lines = []
 	for entry in sfm:
-		#print("Entry is: {}".format(entry))
+		#logging.info("Entry is: {}".format(entry))
 		for field in entry:
-			#print("Field is: {}".format(field))
+			#logging.info("Field is: {}".format(field))
 			if len(field) != 2 :
-				print("\nThis field doesn't contain exactly two items, a marker and data. : {}\n".format(field))
+				logging.info("\nThis field doesn't contain exactly two items, a marker and data. : {}\n".format(field))
 			marker, data = field
 			nextline = (marker + space + data).strip()
 			if marker in new_entry_markers:
@@ -630,12 +611,12 @@ def writesfm(sfm,mode,filename,order=None):
 		lines = lines[1:]
 	with io.open(filename, mode, encoding=utf8) as out:
 		out.writelines(lines)
-
+	return
 
 def writesfm_without_empty_markers(sfm,mode,filename):
 	'''Given an sfm as a list of lists write it to a file omitting empty markers except empty \ps or \sn markers'''
 
-	#print("Writing out the processed file {}".format(filename))
+	#logging.info("Writing out the processed file {}".format(filename))
 	lines = []
 	for entry in sfm:
 		for field in entry:
@@ -653,6 +634,7 @@ def writesfm_without_empty_markers(sfm,mode,filename):
 		lines = lines[1:]
 	with io.open(filename, mode, encoding=utf8) as out:
 		out.writelines(lines)
+	return
 	
 def marker_definitions(filename,mode=read,markers=None):
 	'''Read or write to a csv file containing the names of each marker and it's language and script'''
@@ -663,7 +645,8 @@ def marker_definitions(filename,mode=read,markers=None):
 		
 			f = csv.DictWriter(out,markers)
 			f.writeheader()
-
+	return
+	
 def sanitised_input(prompt, type_=None, min_=None, max_=None, range_=None):
 	if min_ is not None and max_ is not None and max_ < min_:
 		raise ValueError("min_ must be less than or equal to max_.")
@@ -711,12 +694,12 @@ def get_replacement_markers(markers):
 	
 	return find,replace
 
-
 def do_replace_marker(sfm,find,replace):
 #Replace one marker with another.
+
+	logging.info("\nIn replace_marker code:\n")
 	new_sfm = sfm
 	count = 0
-	#print("\nIn replace_marker code:\n")
 	
 	for i,entry in enumerate(new_sfm):
 		for j , field in enumerate(entry):
@@ -724,14 +707,14 @@ def do_replace_marker(sfm,find,replace):
 			if marker == find :
 				count = count + 1
 				new_sfm[i][j][0] = replace
-	
+	logging.info("\nLeaving replace_marker.\n")
 	return new_sfm, count
 
 def duplicate_marker(sfm,find_marker,dup_marker):
 #Duplicate one marker with another.
 	new_sfm = []
 	count = 0
-	#print("\nIn duplicate_marker code:\n")
+	#logging.info("\nIn duplicate_marker code:\n")
 	
 	for entry in sfm:
 		new_entry = []
@@ -746,14 +729,13 @@ def duplicate_marker(sfm,find_marker,dup_marker):
 	
 	return new_sfm, count
 	
-	
 def do_split_marker_by_script(sfm,find_marker,script1,script2,new_marker1,new_marker2):
 #Find a given marker and split it by script.
 
 	ad = AlphabetDetector()
 	new_sfm = sfm
 	count = 0
-	print("\nIn do_split_marker_by_script code:\n")
+	logging.info("\nIn do_split_marker_by_script code:\n")
 	
 	for i,entry in enumerate(new_sfm):
 		for j , field in enumerate(entry):
@@ -767,8 +749,8 @@ def do_split_marker_by_script(sfm,find_marker,script1,script2,new_marker1,new_ma
 					script = next(iter(scripts))
 					new_field = [marker + '_' + script,data]
 					new_sfm[i].insert(j+1,new_field)
-					#print("\nFound '{}' only containing {}. Adding new field: {}".format(data,script,new_field))
-					#print(new_sfm[i])
+					#logging.info("\nFound '{}' only containing {}. Adding new field: {}".format(data,script,new_field))
+					#logging.info(new_sfm[i])
 					
 				elif script_count > 1:
 					print("\nFound {} scripts: {}".format(len(scripts),scripts))
@@ -782,15 +764,13 @@ def do_split_marker_by_script(sfm,find_marker,script1,script2,new_marker1,new_ma
 					print(new_sfm[i])
 	return new_sfm, count
 
-
 def do_replace_marker2(sfm,find,replace):
 #Replace one marker with another.
-	#print("\nIn replace_marker2 code:\n")
+	#logging.info("\nIn replace_marker2 code:\n")
 	sfm[:] = [[[replace,data] if marker == find else [marker,data] for marker,data in entry] for entry in sfm]
 		
-	#print("\nLeaving replace_marker2 code:\n")
+	#logging.info("\nLeaving replace_marker2 code:\n")
 	return sfm
-
 
 def replace_data(sfm, in_marker,find,replace):
 #Replace data in a given marker with other data.
@@ -800,7 +780,7 @@ def replace_data(sfm, in_marker,find,replace):
 		for j, field in enumerate(entry):
 			marker , data = field
 			if marker == in_marker and data == find:
-				#print("Found data match.")
+				#logging.info("Found data match.")
 				sfm[i][j][1] = replace
 				replacement_count += 1
 	return sfm, replacement_count
@@ -819,36 +799,35 @@ def count_markers(sfm):
 	marker_count_with_data = Counter()
 	markers_per_entry = Counter()
 	
-	#print("sfm has depth = {}".format(depth(sfm)))
-	#print("sfm has type = {}".format(type(sfm)))
+	#logging.info("sfm has depth = {}".format(depth(sfm)))
+	#logging.info("sfm has type = {}".format(type(sfm)))
 	for entry in sfm:
-		#print("Entry has {} fields. {}	".format(len(entry),entry))
+		#logging.info("Entry has {} fields. {}	".format(len(entry),entry))
 		#markers_per_entry.update(len(entry))
 		
 		for field in entry:
 			if len(field) == 2:
-				#print("Field has {} parts. {}".format(len(field),field))
+				#logging.info("Field has {} parts. {}".format(len(field),field))
 				marker , data = field
 				marker_count.update([marker])
 				marker_count_with_data.update([marker])
 			elif len(field) == 1:
-				print("Field has {} parts. {}".format(len(field),field))
+				logging.info("Field has {} parts. {}".format(len(field),field))
 				marker = field
-				#print("Marker is {},length is {}".format(field,len(field)))
+				#logging.info("Marker is {},length is {}".format(field,len(field)))
 				marker_count.update([field])
 	return marker_count, marker_count_with_data
-
 
 def fits_in_simple_mdf(entry):
 	''' Function to check whether a given entry contains only one of each field in the MDF spec.'''
 
 	marker_count = Counter()
 	for field in entry:
-#		print("marker_count is {}".format(marker_count))
-#		print("Field[0] is {}".format(field[0]))
+#		logging.info("marker_count is {}".format(marker_count))
+#		logging.info("Field[0] is {}".format(field[0]))
 		marker_count.update([field[0]])
 		if marker_count[field[0]] > 1:
-#			print("Marker {} occurs more than once, - Doesn't fit.".format(field[0]))
+#			logging.info("Marker {} occurs more than once, - Doesn't fit.".format(field[0]))
 			return False
 		
 #	print("Final Marker_count is {}. No markers occur twice = Fits.".format(marker_count))
@@ -882,17 +861,16 @@ def check_markers(sfm,known_markers):
 			else :
 				raise ValueError("Logic error perhaps! Marker is {}\nSeen_markers are:\n{}\nUnknown markers are:\n{}".format(marker,seen_markers,unknown_markers))
 	
+	if seen_markers:
+		print("These expected markers were seen in the file:\n{}".format(seen_markers))
+		
 	if not unknown_markers: 
 		print("There were no unexpected markers seen in the file:")
 	else :
 		print("These unexpected markers were seen in the file:\n{}".format(unknown_markers))
 
-	if seen_markers:
-		print("These expected markers were seen in the file:\n{}".format(seen_markers))
-		
 	return seen_markers, unknown_markers
 
-	
 def split(sfm):
 	''' function to return two lists. one of all the entries that fit in as simple mdf and a list of all the entries that don't.'''
 	
@@ -908,29 +886,27 @@ def split(sfm):
 	return fit, dont_fit
 	
 
-def get_sfm_info(sfm):
-	#print("In get_sfm_info: SFM type is {}".format(type(sfm)))
-	marker_count, marker_count_with_data = count_markers(sfm)
-	markers = [k for k in marker_count.keys()]
-	markers.sort()
-
+def find_list_data(sfm,markers):
 	#The sfm file is a list of entries, each containing a list of fields.
-	#Extract data from all fields looking for repeated data. 
+	#Look at the data from all fields looking for repeated data. 
 	#Repeated data may indicate that it is a 'Range field' (Toolbox) or a 'List Field' (FLEx)
 
+	#logging.info("In find_list_data. SFM type is {}".format(type(sfm)))
+	markers.sort()
+
 	#Create a dictionary with each marker as a key and a Counter() as the value.
-	counter_dict = dict()
+	possible_list_data_dict = dict()
 
 	for marker in markers:
-		counter_dict[marker] = Counter()
+		possible_list_data_dict[marker] = Counter()
 
 	for entry in sfm:
-		#print("Entry is: {}".format(entry))
+		#logging.info("Entry is: {}".format(entry))
 		for field in entry:
 			marker,data = field
-			counter_dict[marker].update([data])
+			possible_list_data_dict[marker].update([data])
 
-	return counter_dict, markers, marker_count, marker_count_with_data
+	return possible_list_data_dict
 
 def determine_file_type(filein):
 	
@@ -946,7 +922,7 @@ def determine_file_type(filein):
 		while choice not in ['s', 'c', 't', 'q']:
 			choice = sanitised_input("The file extension {} isn't recognised. Should it be treated as an SFM, CSV or TYP file? Type s, c, or t to indicate the file type or q to quit.>".format(file_extension), str, range_=('sfm', 's', 'csv', 'c', 'typ', 't', 'q', 'quit'))
 			choice = choice.lower()[0]
-			print("Choice is {}".format(choice))
+			logging.info("Choice is {}".format(choice))
 			
 		if choice is 's':
 			return '.sfm'
@@ -965,14 +941,13 @@ def process_input_file(filein):
 	filetype = determine_file_type(filein)
 	
 	if filetype == sfm_ext :
-		sfm, marker_count, marker_count_with_data = sfm_from_list(sfmlist_from_file(filein))
-		
 		#sfm = read_sfm_file(filein)
-		return sfm, marker_count, marker_count_with_data
+		#return sfm, marker_count, marker_count_with_data, emtpy_marker_count		
+		return sfm_from_list(sfmlist_from_file(filein))
 		
 	elif filetype == csv_ext :
 		sfm , markers, no_slash_cells = readcsv(filein)
-		print("In process_input_file sfm is of type {}".format(type(sfm)))
+		logging.info("In process_input_file sfm is of type {}".format(type(sfm)))
 		
 		if no_slash_cells :
 			print("\nSome cells do not contain slashes so it isn't clear whether they contain a marker.")
@@ -989,15 +964,16 @@ def process_input_file(filein):
 					
 		#Note that filetype might not be set and the data is returned as a nested list (sfm not csv).
 		
-		return sfm, None, None
+		return sfm, None, None, None
 		
 	# elif filetype == typ_ext:
-		# print("Extension is {}".format(filetype))
+		# logging.info("Extension is {}".format(filetype))
 		# typ, groups =  read_typ_file(filein)
 		# return typ, groups
 	else :
 		raise ValueError("Didn't know what to do with file {} of type {} in process_input_file.".format(filein,filetype))
-
+	return
+	
 def process_replacements_from_file(sfm,marker,changefile):
 
 	total_replacements = 0
@@ -1040,8 +1016,8 @@ def split_file_info(simple_mdf,not_simple_mdf):
 		markers_in_entry  =  markers_not_fit(entry)
 		lexeme = entry[0][1]
 		not_fitting = [(k,v) for k,v in markers_in_entry.items() if v > 1]
-#		print("Marker counts for entry {} are:\n{}\n".format(lexeme, markers_in_entry))
-#		print("Markers not fitting: {}\n".format(not_fitting))
+#		logging.info("Marker counts for entry {} are:\n{}\n".format(lexeme, markers_in_entry))
+#		logging.info("Markers not fitting: {}\n".format(not_fitting))
 
 		if len(not_fitting) == 1:
 			single_field_counter.update(not_fitting)
@@ -1050,21 +1026,19 @@ def split_file_info(simple_mdf,not_simple_mdf):
 			marker1 = not_fitting[0][0].strip(slash)
 			marker2 = not_fitting[1][0].strip(slash)
 			
-			print([marker1 + space + marker2])
+			logging.info([marker1 + space + marker2])
 			double_field_counter.update([marker1 + space + marker2])
 	
-	#print(single_field_counter)
 	print("A total of {} entries don't fit due to multiples of one field.".format(sum(single_field_counter.values())))
-	#print(double_field_counter)
 	print("A total of {} entries don't fit due to multiples of two fields.".format(sum(double_field_counter.values())))
-		
+	logging.info("Leaving split_file_info")
 	return None	
 
 
 def show_main_menu(sfm):
 	while True:
-		#print("main_menu is {} and it's type is {}".format(main_menu,type(main_menu)))
-		counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
+		#logging.info("main_menu is {} and it's type is {}".format(main_menu,type(main_menu)))
+		possible_list_data_dict = get_sfm_info(sfm,markers)
 		
 		menu = main_menu()
 		choice = show_menu(*menu)
@@ -1142,7 +1116,7 @@ def show_main_menu(sfm):
 		if choice == '6':
 			info_file = filesavebox(title="Save processed file as:")
 			print("Writing data to file {}.".format(info_file))
-			counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
+			possible_list_data_dict = find_list_data(sfm,markers)
 			
 			# new_counter_dict = dict()
 			# for i,entry in enumerate(counter_dict.items()):
@@ -1158,14 +1132,14 @@ def show_main_menu(sfm):
 			#writemarkers(marker_count, marker_count_with_data,markersfile,overwrite)
 			#printmarkers(marker_count, marker_count_with_data)
 			#output_markers(marker_count, marker_count_with_data)
-			output_markers(marker_count, marker_count_with_data,info_file,overwrite)
+			output_markers(marker_count, marker_count_with_data,emtpy_marker_count,info_file,overwrite)
 			#output_counter(marker_count_with_data,"The most used markers are:")
 			
 		if choice == '7':
 			limit = 6
 			print("\nLooking for common data in each field.")
 			print("Data repeated more than {} times is shown with a count of the occurances, under the field marker.".format(limit))
-			counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
+			possible_list_data_dict = find_list_data(sfm,markers)
 			#print(counter_dict)
 			#exit()
 			info_file = filesavebox(title="Save info as:")
@@ -1192,7 +1166,7 @@ def show_main_menu(sfm):
 			#	field_chosen = input("Type in the field whose data you want to change. Or hit enter to go back.")
 			if not field_chosen:
 				break
-			counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
+			possible_list_data_dict = find_list_data(sfm,markers)
 			for item,count in counter_dict[field_chosen].items():
 				print(item,"\t\t",count)
 				
@@ -1282,8 +1256,9 @@ if __name__ == "__main__":
 	if not args.input:
 		args.input = fileopenbox(title="Choose a file to process.", filetypes=filemasks)
 
-	sfm , marker_count, marker_count_with_data = process_input_file(args.input)
-	print("Got sfm with {} entries\n".format(len(sfm)))
+	sfm , marker_count, marker_count_with_data, emtpy_marker_count = process_input_file(args.input)
+	
+	print("The sfm file has {} entries\n".format(len(sfm)))
 	
 	if not args.output:
 		args.output = filesavebox("Where would you like to save the processed SFM file?")
@@ -1291,16 +1266,16 @@ if __name__ == "__main__":
 	if (args.output) :
 		writesfm(sfm,overwrite,args.output)
 	
-	#print("In __main__. sfm has type = {}".format(type(sfm)))
-	counter_dict, markers, marker_count, marker_count_with_data = get_sfm_info(sfm)
-	seen_markers, unknown_markers = check_markers(sfm,mdf_order)
+	#("In __main__. sfm has type = {}".format(type(sfm)))
+	possible_list_data_dict = find_list_data(sfm,markers)
+	#seen_markers, unknown_markers = check_markers(sfm,mdf_order)
 
 	if not args.report:
 		args.report = filesavebox("Where would you like to save a report about the data?")
 	
 	if (args.report) :
-		output_markers(marker_count, marker_count_with_data,args.report,overwrite)
-		writemarkers(marker_count, marker_count_with_data,args.report,append)
+		output_markers(marker_count, marker_count_with_data,emtpy_marker_count,args.report,overwrite)
+		writemarkers(marker_count, marker_count_with_data,emtpy_marker_count,args.report,append)
 		for marker in markers:
 			output_counter(counter_dict[marker],"  Marker: {}".format(marker),limit=8,filename=args.report,mode=append)
 		
